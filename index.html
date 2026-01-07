@@ -130,16 +130,6 @@
             line-height: 1.4;
         }
 
-        .dropzone input {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            opacity: 0;
-            cursor: pointer;
-        }
-
         /* --- Waveform Area --- */
         .editor-container {
             background: var(--bg-panel);
@@ -338,36 +328,38 @@
 
     <header>
         <div class="logo">SonicCut Pro</div>
-        <div style="font-size: 0.8rem; color: var(--text-muted);">v1.1.0 (iOS Ready)</div>
+        <div style="font-size: 0.8rem; color: var(--text-muted);">v1.2.0 (iOS OK)</div>
     </header>
 
     <main>
         <div class="container">
-            <!-- Tela de inicialização (obrigatória no iOS) -->
+            <!-- Tela de inicialização -->
             <div id="initScreen">
                 <h2>✨ Bem-vindo ao SonicCut Pro</h2>
                 <p>
-                    Para usar no iPhone ou iPad, clique no botão abaixo para ativar o editor.<br>
-                    Isso é necessário devido às restrições de segurança do iOS.
+                    Para usar no iPhone ou iPad, toque no botão abaixo.<br>
+                    Isso ativa o editor de áudio (exigido pelo iOS).
                 </p>
                 <button class="btn btn-primary" id="initBtn" style="padding:0.8rem 2rem; font-size:1rem;">
                     ✅ Iniciar Editor
                 </button>
             </div>
 
-            <!-- Upload Section (inicialmente escondido) -->
-            <div class="dropzone" id="dropzone" style="display:none;">
+            <!-- Upload Section (com label acessível no iOS) -->
+            <div class="dropzone" id="dropzone" style="display:none; position:relative;">
+                <label for="fileInput" style="cursor:pointer; display:block; width:100%; height:100%;">
+                    <div id="uploadText">
+                        <h3>Selecione um arquivo de áudio</h3>
+                        <p>
+                            Toque aqui para escolher um arquivo.<br>
+                            <strong>iOS:</strong> Use arquivos do iCloud ou App Arquivos.
+                        </p>
+                    </div>
+                </label>
                 <input type="file" 
                        id="fileInput" 
                        accept="audio/*,.mp3,.wav,.ogg,.m4a,.aac"
-                       style="cursor:pointer;">
-                <div id="uploadText">
-                    <h3>Selecione um arquivo de áudio</h3>
-                    <p>
-                        Arraste ou clique para escolher.<br>
-                        <strong>iOS:</strong> Use arquivos do iCloud ou App Arquivos.
-                    </p>
-                </div>
+                       style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0.01; z-index:2; cursor:pointer;">
             </div>
 
             <!-- Editor Section -->
@@ -433,7 +425,6 @@
 
         let isInitialized = false;
 
-        // Elementos DOM
         const initScreen = document.getElementById('initScreen');
         const initBtn = document.getElementById('initBtn');
         const dropzone = document.getElementById('dropzone');
@@ -451,28 +442,26 @@
         const currentTimeEl = document.getElementById('currentTime');
         const totalTimeEl = document.getElementById('totalTime');
 
-        // Inicialização obrigatória (iOS)
+        // Inicializar após clique (obrigatório no iOS)
         initBtn.addEventListener('click', () => {
             isInitialized = true;
             initScreen.style.display = 'none';
             dropzone.style.display = 'flex';
-            // Criar contexto em estado suspenso (seguro)
             if (!state.audioContext) {
                 state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
             }
-            showToast('Editor ativado! Selecione um arquivo de áudio.', 'success');
+            showToast('Editor ativado! Toque no quadro acima para selecionar um áudio.', 'success');
         });
-
-        function initAudioContext() {
-            if (!state.audioContext) {
-                state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            }
-        }
 
         function handleFile(file) {
             if (!isInitialized) {
-                showToast('Clique em "Iniciar Editor" primeiro.', 'error');
-                fileInput.value = ''; // limpar seleção
+                showToast('Toque em "Iniciar Editor" primeiro.', 'error');
+                fileInput.value = '';
+                return;
+            }
+
+            if (!file) {
+                fileInput.value = '';
                 return;
             }
 
@@ -511,6 +500,7 @@
                     
                     drawWaveform();
                     loader.classList.remove('active');
+                    showToast('Áudio carregado com sucesso!', 'success');
                 }, (err) => {
                     console.error(err);
                     loader.classList.remove('active');
@@ -521,184 +511,13 @@
             reader.readAsArrayBuffer(file);
         }
 
-        // Eventos de upload
-        dropzone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropzone.classList.add('dragover');
-        });
-
-        dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
-
-        dropzone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropzone.classList.remove('dragover');
-            if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
-        });
-
         fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length) handleFile(e.target.files[0]);
-        });
-
-        dropzone.addEventListener('click', () => {
-            if (isInitialized) fileInput.click();
-        });
-
-        // --- Canvas e interação (mesmo código) ---
-        function drawWaveform() { /* ... mesmo que antes ... */ }
-        function drawSelectionOverlay(width, height) { /* ... */ }
-        function timeFromX(x) { /* ... */ }
-        function updateInputsFromState() { /* ... */ }
-
-        canvas.addEventListener('mousedown', (e) => { /* ... */ });
-        window.addEventListener('mousemove', (e) => { /* ... */ });
-        window.addEventListener('mouseup', () => { /* ... */ });
-
-        // --- Áudio ---
-        function playAudio() { /* ... mesmo ... */ }
-        function stopAudio() { /* ... */ }
-        function updatePlaybackUI() { /* ... */ }
-
-        playBtn.addEventListener('click', () => {
-            if (!isInitialized || !state.audioBuffer) {
-                showToast('Carregue um áudio primeiro.', 'error');
-                return;
-            }
-            initAudioContext();
-            if (state.audioContext.state === 'suspended') {
-                state.audioContext.resume().then(() => {
-                    playAudio();
-                });
-            } else {
-                playAudio();
+            if (e.target.files.length) {
+                handleFile(e.target.files[0]);
             }
         });
 
-        stopBtn.addEventListener('click', stopAudio);
-
-        function parseTime(str) { /* ... */ }
-        function handleTimeChange() { /* ... */ }
-
-        startInput.addEventListener('change', handleTimeChange);
-        endInput.addEventListener('change', handleTimeChange);
-
-        // --- Exportação ---
-        downloadBtn.addEventListener('click', () => {
-            if (!isInitialized || !state.audioBuffer) {
-                showToast('Carregue um áudio primeiro.', 'error');
-                return;
-            }
-            const start = state.selection.start;
-            const end = state.selection.end;
-            const duration = end - start;
-            if (duration <= 0) {
-                showToast('Selecione uma faixa válida.', 'error');
-                return;
-            }
-
-            loader.classList.add('active');
-            setTimeout(() => {
-                try {
-                    const sampleRate = state.audioBuffer.sampleRate;
-                    const frameCount = Math.floor(duration * sampleRate);
-                    const channels = state.audioBuffer.numberOfChannels;
-                    const newBuffer = state.audioContext.createBuffer(channels, frameCount, sampleRate);
-                    const startOffset = Math.floor(start * sampleRate);
-                    for (let i = 0; i < channels; i++) {
-                        const oldData = state.audioBuffer.getChannelData(i);
-                        const newData = newBuffer.getChannelData(i);
-                        newData.set(oldData.subarray(startOffset, startOffset + frameCount), 0);
-                    }
-
-                    const wavBlob = bufferToWave(newBuffer, frameCount);
-                    const url = URL.createObjectURL(wavBlob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = `${state.fileName}_cortado.wav`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(url);
-                    showToast('Download iniciado!', 'success');
-                } catch (e) {
-                    console.error(e);
-                    showToast('Erro ao processar áudio.', 'error');
-                } finally {
-                    loader.classList.remove('active');
-                }
-            }, 100);
-        });
-
-        // Funções utilitárias (formatTime, bufferToWave, showToast) - mesmas
-        function formatTime(seconds) {
-            const m = Math.floor(seconds / 60);
-            const s = Math.floor(seconds % 60);
-            const ms = Math.floor((seconds % 1) * 100);
-            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
-        }
-
-        function bufferToWave(abuffer, len) {
-            let numOfChan = abuffer.numberOfChannels,
-                length = len * numOfChan * 2 + 44,
-                buffer = new ArrayBuffer(length),
-                view = new DataView(buffer),
-                channels = [], i, sample,
-                offset = 0,
-                pos = 0;
-
-            setUint32(0x46464952);
-            setUint32(length - 8);
-            setUint32(0x45564157);
-            setUint32(0x20746d66);
-            setUint32(16);
-            setUint16(1);
-            setUint16(numOfChan);
-            setUint32(abuffer.sampleRate);
-            setUint32(abuffer.sampleRate * 2 * numOfChan);
-            setUint16(numOfChan * 2);
-            setUint16(16);
-            setUint32(0x61746164);
-            setUint32(length - pos - 4);
-
-            for(i = 0; i < abuffer.numberOfChannels; i++)
-                channels.push(abuffer.getChannelData(i));
-
-            while(pos < len) {
-                for(i = 0; i < numOfChan; i++) {
-                    sample = Math.max(-1, Math.min(1, channels[i][pos]));
-                    sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767)|0;
-                    view.setInt16(44 + offset, sample, true);
-                    offset += 2;
-                }
-                pos++;
-            }
-
-            return new Blob([buffer], {type: "audio/wav"});
-
-            function setUint16(data) { view.setUint16(pos, data, true); pos += 2; }
-            function setUint32(data) { view.setUint32(pos, data, true); pos += 4; }
-        }
-
-        function showToast(message, type = 'success') {
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            let icon = type === 'success' 
-                ? '<svg width="20" height="20" fill="#10b981" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/></svg>'
-                : '<svg width="20" height="20" fill="#ef4444" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8 4a.905.905 0 0 0-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 4zm.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/></svg>';
-
-            toast.innerHTML = `${icon} <span>${message}</span>`;
-            document.getElementById('toastContainer').appendChild(toast);
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                toast.style.transform = 'translateX(50px)';
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
-        }
-
-        window.addEventListener('resize', () => {
-            if (state.audioBuffer) drawWaveform();
-        });
-
-        // Implementações faltantes (copiadas do original)
+        // Canvas e lógica de edição (mesmo que antes)
         function drawWaveform() {
             if (!state.audioBuffer) return;
             const width = canvasWrapper.clientWidth;
@@ -856,6 +675,22 @@
             requestAnimationFrame(updatePlaybackUI);
         }
 
+        playBtn.addEventListener('click', () => {
+            if (!isInitialized || !state.audioBuffer) {
+                showToast('Carregue um áudio primeiro.', 'error');
+                return;
+            }
+            if (state.audioContext.state === 'suspended') {
+                state.audioContext.resume().then(() => {
+                    playAudio();
+                });
+            } else {
+                playAudio();
+            }
+        });
+
+        stopBtn.addEventListener('click', stopAudio);
+
         function parseTime(str) {
             const parts = str.split(':');
             if (parts.length === 2) {
@@ -876,6 +711,124 @@
                 drawWaveform();
             }
         }
+
+        startInput.addEventListener('change', handleTimeChange);
+        endInput.addEventListener('change', handleTimeChange);
+
+        downloadBtn.addEventListener('click', () => {
+            if (!isInitialized || !state.audioBuffer) {
+                showToast('Carregue um áudio primeiro.', 'error');
+                return;
+            }
+            const start = state.selection.start;
+            const end = state.selection.end;
+            const duration = end - start;
+            if (duration <= 0) {
+                showToast('Selecione uma faixa válida.', 'error');
+                return;
+            }
+
+            loader.classList.add('active');
+            setTimeout(() => {
+                try {
+                    const sampleRate = state.audioBuffer.sampleRate;
+                    const frameCount = Math.floor(duration * sampleRate);
+                    const channels = state.audioBuffer.numberOfChannels;
+                    const newBuffer = state.audioContext.createBuffer(channels, frameCount, sampleRate);
+                    const startOffset = Math.floor(start * sampleRate);
+                    for (let i = 0; i < channels; i++) {
+                        const oldData = state.audioBuffer.getChannelData(i);
+                        const newData = newBuffer.getChannelData(i);
+                        newData.set(oldData.subarray(startOffset, startOffset + frameCount), 0);
+                    }
+
+                    const wavBlob = bufferToWave(newBuffer, frameCount);
+                    const url = URL.createObjectURL(wavBlob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `${state.fileName}_cortado.wav`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                    showToast('Download iniciado!', 'success');
+                } catch (e) {
+                    console.error(e);
+                    showToast('Erro ao processar áudio.', 'error');
+                } finally {
+                    loader.classList.remove('active');
+                }
+            }, 100);
+        });
+
+        function bufferToWave(abuffer, len) {
+            let numOfChan = abuffer.numberOfChannels,
+                length = len * numOfChan * 2 + 44,
+                buffer = new ArrayBuffer(length),
+                view = new DataView(buffer),
+                channels = [], i, sample,
+                offset = 0,
+                pos = 0;
+
+            setUint32(0x46464952);
+            setUint32(length - 8);
+            setUint32(0x45564157);
+            setUint32(0x20746d66);
+            setUint32(16);
+            setUint16(1);
+            setUint16(numOfChan);
+            setUint32(abuffer.sampleRate);
+            setUint32(abuffer.sampleRate * 2 * numOfChan);
+            setUint16(numOfChan * 2);
+            setUint16(16);
+            setUint32(0x61746164);
+            setUint32(length - pos - 4);
+
+            for(i = 0; i < abuffer.numberOfChannels; i++)
+                channels.push(abuffer.getChannelData(i));
+
+            while(pos < len) {
+                for(i = 0; i < numOfChan; i++) {
+                    sample = Math.max(-1, Math.min(1, channels[i][pos]));
+                    sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767)|0;
+                    view.setInt16(44 + offset, sample, true);
+                    offset += 2;
+                }
+                pos++;
+            }
+
+            return new Blob([buffer], {type: "audio/wav"});
+
+            function setUint16(data) { view.setUint16(pos, data, true); pos += 2; }
+            function setUint32(data) { view.setUint32(pos, data, true); pos += 4; }
+        }
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = Math.floor(seconds % 60);
+            const ms = Math.floor((seconds % 1) * 100);
+            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            let icon = type === 'success' 
+                ? '<svg width="20" height="20" fill="#10b981" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/></svg>'
+                : '<svg width="20" height="20" fill="#ef4444" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8 4a.905.905 0 0 0-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 4zm.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/></svg>';
+
+            toast.innerHTML = `${icon} <span>${message}</span>`;
+            document.getElementById('toastContainer').appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(50px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        window.addEventListener('resize', () => {
+            if (state.audioBuffer) drawWaveform();
+        });
     </script>
 </body>
 </html>
