@@ -88,6 +88,11 @@
             cursor: pointer;
             position: relative;
             user-select: none;
+            transition: all 0.25s ease;
+        }
+
+        .dropzone:active {
+            transform: scale(0.98);
         }
 
         .dropzone h3 {
@@ -101,7 +106,6 @@
             line-height: 1.4;
         }
 
-        /* Input de arquivo acessível */
         #fileInput {
             position: absolute;
             top: 0;
@@ -134,7 +138,7 @@
             overflow: hidden;
             cursor: pointer;
             border: 1px solid var(--border);
-            touch-action: none; /* permite toque personalizado */
+            touch-action: none;
         }
 
         canvas {
@@ -291,6 +295,12 @@
             .quality-select {
                 width: 100%;
             }
+            header {
+                padding: 0.9rem 1.2rem;
+            }
+            .dropzone {
+                padding: 1.8rem 1.2rem;
+            }
         }
     </style>
 </head>
@@ -357,6 +367,7 @@
     <div class="toast-container" id="toastContainer"></div>
 
     <script>
+        // Estado da aplicação
         const state = {
             audioContext: null,
             audioBuffer: null,
@@ -364,11 +375,12 @@
             isPlaying: false,
             selection: { start: 0, end: 0 },
             fileName: 'audio_cortado',
+            audioUnlocked: false,
             touchStartX: 0,
             isTouching: false
         };
 
-        // DOM
+        // Elementos
         const dropzone = document.getElementById('dropzone');
         const fileInput = document.getElementById('fileInput');
         const editor = document.getElementById('editor');
@@ -383,26 +395,48 @@
         const currentTimeEl = document.getElementById('currentTime');
         const totalTimeEl = document.getElementById('totalTime');
 
-        // Inicializar áudio (auto-resume no primeiro toque)
-        function initAudioContext() {
-            if (!state.audioContext) {
-                state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        // ⭐️ DESTRavar o áudio no iOS (com som silencioso)
+        function unlockAudio() {
+            if (state.audioUnlocked) return true;
+            try {
+                if (!state.audioContext) {
+                    state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                const buffer = state.audioContext.createBuffer(1, 1, 22050);
+                const source = state.audioContext.createBufferSource();
+                source.buffer = buffer;
+                source.connect(state.audioContext.destination);
+                source.start(0);
+                state.audioUnlocked = true;
+                return true;
+            } catch (e) {
+                console.warn("Falha ao destravar áudio:", e);
+                return false;
             }
         }
 
         // Carregar arquivo
         function handleFile(file) {
-            if (!file.type.startsWith('audio/') && !['.mp3','.wav','.ogg','.m4a','.aac'].some(ext => file.name.toLowerCase().endsWith(ext))) {
+            if (!file) return;
+            const valid = file.type.startsWith('audio/') || 
+                ['.mp3','.wav','.ogg','.m4a','.aac'].some(ext => 
+                    file.name.toLowerCase().endsWith(ext)
+                );
+            if (!valid) {
                 showToast('Formato não suportado.', 'error');
                 return;
             }
 
+            if (!unlockAudio()) {
+                showToast('Erro ao ativar áudio. Tente novamente.', 'error');
+                return;
+            }
+
             state.fileName = file.name.replace(/\.[^/.]+$/, "") || 'audio_cortado';
-            initAudioContext();
             loader.classList.add('active');
 
             const reader = new FileReader();
-            reader.onload = e => {
+            reader.onload = (e) => {
                 state.audioContext.decodeAudioData(e.target.result)
                     .then(buffer => {
                         state.audioBuffer = buffer;
@@ -420,18 +454,27 @@
                     .catch(err => {
                         console.error(err);
                         loader.classList.remove('active');
-                        showToast('Erro ao carregar áudio.', 'error');
+                        showToast('Não foi possível carregar o áudio.', 'error');
                     });
             };
             reader.readAsArrayBuffer(file);
         }
 
-        // Eventos de upload
-        fileInput.addEventListener('change', e => {
-            if (e.target.files[0]) handleFile(e.target.files[0]);
+        // 🔄 Mecanismo de dois toques (iOS compatível)
+        let firstTouch = true;
+        dropzone.addEventListener('click', () => {
+            if (firstTouch) {
+                unlockAudio();
+                firstTouch = false;
+                showToast('Áudio ativado! Toque novamente para selecionar um arquivo.', 'success');
+            } else {
+                fileInput.click();
+            }
         });
 
-        dropzone.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files[0]) handleFile(e.target.files[0]);
+        });
 
         // --- Canvas ---
         function drawWaveform() {
@@ -451,13 +494,10 @@
             ctx.fillStyle = '#06b6d4';
             for (let i = 0; i < width; i++) {
                 let min = 1.0, max = -1.0;
-                for (let j = 0; j < step; j++) {
-                    const idx = (i * step) + j;
-                    if (idx < data.length) {
-                        const val = data[idx];
-                        min = Math.min(min, val);
-                        max = Math.max(max, val);
-                    }
+                for (let j = 0; j < step && (i * step + j) < data.length; j++) {
+                    const val = data[i * step + j];
+                    min = Math.min(min, val);
+                    max = Math.max(max, val);
                 }
                 const barHeight = Math.max(1, (max - min) * amp * 0.85);
                 const y = (height - barHeight) / 2;
@@ -492,33 +532,27 @@
 
         // --- Toque/Deslize (móvel) ---
         function getPositionX(e) {
-            if (e.touches && e.touches.length) return e.touches[0].clientX;
-            return e.clientX;
+            return (e.touches && e.touches.length) ? e.touches[0].clientX : e.clientX;
         }
 
-        canvasWrapper.addEventListener('pointerdown', e => {
+        canvasWrapper.addEventListener('pointerdown', (e) => {
             if (!state.audioBuffer) return;
             e.preventDefault();
             state.isTouching = true;
             state.touchStartX = getPositionX(e);
-            canvasWrapper.setPointerCapture(e.pointerId);
         });
 
-        canvasWrapper.addEventListener('pointermove', e => {
+        canvasWrapper.addEventListener('pointermove', (e) => {
             if (!state.isTouching || !state.audioBuffer) return;
             const rect = canvasWrapper.getBoundingClientRect();
             const currentX = getPositionX(e);
             const width = rect.width;
             const duration = state.audioBuffer.duration;
 
-            const start = (Math.min(state.touchStartX, currentX) - rect.left) / width * duration;
-            const end = (Math.max(state.touchStartX, currentX) - rect.left) / width * duration;
-
-            state.selection.start = Math.max(0, Math.min(start, duration));
-            state.selection.end = Math.max(0, Math.min(end, duration));
-            if (state.selection.start > state.selection.end) {
-                [state.selection.start, state.selection.end] = [state.selection.end, state.selection.start];
-            }
+            const x1 = Math.min(state.touchStartX, currentX);
+            const x2 = Math.max(state.touchStartX, currentX);
+            state.selection.start = Math.max(0, (x1 - rect.left) / width * duration);
+            state.selection.end = Math.min(duration, (x2 - rect.left) / width * duration);
             drawWaveform();
         });
 
@@ -533,10 +567,7 @@
         // --- Áudio ---
         function playAudio() {
             if (state.isPlaying) stopAudio();
-            initAudioContext();
-            if (state.audioContext.state === 'suspended') {
-                state.audioContext.resume();
-            }
+            if (!unlockAudio()) return;
 
             const offset = state.selection.start;
             const duration = state.selection.end - state.selection.start;
@@ -584,7 +615,7 @@
             const start = state.selection.start;
             const end = state.selection.end;
             const duration = end - start;
-            if (duration <= 0.01) {
+            if (duration < 0.01) {
                 showToast('Selecione um trecho válido.', 'error');
                 return;
             }
@@ -609,11 +640,9 @@
                             channels = 2;
                     }
 
-                    // Resampling básico (interpolado)
                     const originalSR = state.audioBuffer.sampleRate;
                     const frameCount = Math.floor(duration * sampleRate);
                     const newBuffer = state.audioContext.createBuffer(channels, frameCount, sampleRate);
-
                     const startOffset = Math.floor(start * originalSR);
                     const ratio = originalSR / sampleRate;
 
@@ -630,7 +659,7 @@
                     const url = URL.createObjectURL(wavBlob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `${state.fileName}_cortado_${quality}.wav`;
+                    a.download = `${state.fileName}_cortado.wav`;
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
@@ -670,7 +699,7 @@
             writeString(8, 'WAVE');
             writeString(12, 'fmt ');
             writeUint32(16, 16);
-            writeUint16(20, 1); // PCM
+            writeUint16(20, 1);
             writeUint16(22, numChannels);
             writeUint32(24, sampleRate);
             writeUint32(28, byteRate);
