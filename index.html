@@ -35,6 +35,7 @@
             background-image: 
                 radial-gradient(circle at 15% 50%, rgba(6, 182, 212, 0.05), transparent 25%),
                 radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.05), transparent 25%);
+            touch-action: manipulation; /* Melhora resposta ao toque */
         }
 
         /* --- Header --- */
@@ -66,7 +67,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 2rem;
+            padding: 1rem;
             position: relative;
         }
 
@@ -82,13 +83,14 @@
         .dropzone {
             border: 2px dashed var(--border);
             border-radius: 12px;
-            padding: 3rem;
+            padding: 2rem;
             text-align: center;
             transition: all 0.3s ease;
             background: rgba(255, 255, 255, 0.02);
             cursor: pointer;
             position: relative;
             overflow: hidden;
+            user-select: none; /* evita seleção acidental no toque */
         }
 
         .dropzone:hover, .dropzone.dragover {
@@ -105,7 +107,8 @@
 
         .dropzone p {
             color: var(--text-muted);
-            font-size: 0.9rem;
+            font-size: 0.85rem;
+            line-height: 1.4;
         }
 
         .dropzone input {
@@ -215,6 +218,7 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            user-select: none;
         }
 
         .btn:hover:not(:disabled) {
@@ -297,23 +301,46 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
+        /* Responsive small screens */
+        @media (max-width: 600px) {
+            .controls {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            .btn-group, .inputs-group {
+                justify-content: center;
+            }
+            .dropzone {
+                padding: 1.5rem;
+            }
+            .dropzone p {
+                font-size: 0.8rem;
+            }
+        }
     </style>
 </head>
 <body>
 
     <header>
         <div class="logo">SonicCut Pro</div>
-        <div style="font-size: 0.8rem; color: var(--text-muted);">v1.0.0</div>
+        <div style="font-size: 0.8rem; color: var(--text-muted);">v1.0.1 (iOS Ready)</div>
     </header>
 
     <main>
         <div class="container">
             <!-- Upload Section -->
             <div class="dropzone" id="dropzone">
-                <input type="file" id="fileInput" accept="audio/*">
+                <input type="file" 
+                       id="fileInput" 
+                       accept="audio/*,.mp3,.wav,.ogg,.m4a,.aac"
+                       style="cursor:pointer;">
                 <div id="uploadText">
-                    <h3>Arraste seu áudio aqui</h3>
-                    <p>ou clique para selecionar (MP3, WAV, OGG)</p>
+                    <h3>Selecione um arquivo de áudio</h3>
+                    <p>
+                        Arraste ou clique para escolher.<br>
+                        <strong>iOS:</strong> Use arquivos do iCloud ou App Arquivos.<br>
+                        (Músicas do Apple Music não são acessíveis)
+                    </p>
                 </div>
             </div>
 
@@ -368,11 +395,9 @@
 
     <script>
         /**
-         * Lógica do SonicCut Pro
-         * Gerencia áudio, canvas, interações e codificação WAV.
+         * SonicCut Pro — com suporte a iOS
          */
 
-        // Estado da aplicação
         const state = {
             audioContext: null,
             audioBuffer: null,
@@ -380,7 +405,7 @@
             startTime: 0,
             pauseTime: 0,
             isPlaying: false,
-            selection: { start: 0, end: 0, dragging: null }, // dragging: 'start', 'end', 'region', or null
+            selection: { start: 0, end: 0, dragging: null },
             fileName: 'audio_cortado'
         };
 
@@ -392,8 +417,6 @@
         const ctx = canvas.getContext('2d');
         const canvasWrapper = document.getElementById('canvasWrapper');
         const loader = document.getElementById('loader');
-        
-        // Controles
         const playBtn = document.getElementById('playBtn');
         const stopBtn = document.getElementById('stopBtn');
         const downloadBtn = document.getElementById('downloadBtn');
@@ -402,22 +425,26 @@
         const currentTimeEl = document.getElementById('currentTime');
         const totalTimeEl = document.getElementById('totalTime');
 
-        // Inicialização
+        // Inicializar contexto de áudio
         function initAudioContext() {
             if (!state.audioContext) {
                 state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
             }
         }
 
-        // --- Manipulação de Arquivos ---
-
+        // Lidar com arquivo
         function handleFile(file) {
-            if (!file.type.startsWith('audio/')) {
-                showToast('Por favor, envie um arquivo de áudio válido.', 'error');
+            if (!file.type.startsWith('audio/') && !['.mp3','.wav','.ogg','.m4a','.aac'].some(ext => file.name.toLowerCase().endsWith(ext))) {
+                showToast('Por favor, envie um arquivo de áudio válido (MP3, WAV, OGG, M4A).', 'error');
                 return;
             }
 
-            state.fileName = file.name.replace(/\.[^/.]+$/, "");
+            // Corrigir nome no iOS (evita "blob")
+            const baseName = file.name && file.name !== 'blob' 
+                ? file.name.replace(/\.[^/.]+$/, "") 
+                : 'audio_cortado';
+            state.fileName = baseName;
+
             initAudioContext();
             loader.classList.add('active');
 
@@ -426,12 +453,9 @@
                 const arrayBuffer = e.target.result;
                 state.audioContext.decodeAudioData(arrayBuffer, (buffer) => {
                     state.audioBuffer = buffer;
-                    
-                    // Configurar seleção inicial (tudo)
                     state.selection.start = 0;
                     state.selection.end = buffer.duration;
 
-                    // Atualizar UI
                     totalTimeEl.textContent = formatTime(buffer.duration);
                     startInput.value = formatTime(0);
                     endInput.value = formatTime(buffer.duration);
@@ -451,6 +475,7 @@
             reader.readAsArrayBuffer(file);
         }
 
+        // Eventos de arrastar
         dropzone.addEventListener('dragover', (e) => {
             e.preventDefault();
             dropzone.classList.add('dragover');
@@ -468,31 +493,28 @@
             if (e.target.files.length) handleFile(e.target.files[0]);
         });
 
-        // --- Visualização (Canvas) ---
+        // ⭐️ Garantir clique no dropzone (iOS Safari)
+        dropzone.addEventListener('click', () => {
+            fileInput.click();
+        });
 
+        // --- Canvas e interação ---
         function drawWaveform() {
             if (!state.audioBuffer) return;
 
             const width = canvasWrapper.clientWidth;
             const height = canvasWrapper.clientHeight;
-            
-            // Ajustar DPI para nitidez
             const dpr = window.devicePixelRatio || 1;
             canvas.width = width * dpr;
             canvas.height = height * dpr;
             ctx.scale(dpr, dpr);
-
-            // Limpar
             ctx.clearRect(0, 0, width, height);
 
-            // Obter dados (canal esquerdo apenas para visualização)
             const data = state.audioBuffer.getChannelData(0);
             const step = Math.ceil(data.length / width);
             const amp = height / 2;
 
-            // Desenhar Onda
-            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--primary');
-            
+            ctx.fillStyle = '#06b6d4';
             for (let i = 0; i < width; i++) {
                 let min = 1.0;
                 let max = -1.0;
@@ -501,18 +523,12 @@
                     if (datum < min) min = datum;
                     if (datum > max) max = datum;
                 }
-                
-                // Estilo tecnológico: barras verticais
-                const barHeight = Math.max(1, (max - min) * amp * 0.9); // 0.9 padding
+                const barHeight = Math.max(1, (max - min) * amp * 0.9);
                 const x = i;
                 const y = (height - barHeight) / 2;
-                
-                // Gradiente sutil na barra
-                ctx.fillStyle = '#06b6d4'; 
                 ctx.fillRect(x, y, 1.5, barHeight);
             }
 
-            // Desenhar Seleção
             drawSelectionOverlay(width, height);
         }
 
@@ -522,12 +538,10 @@
             const endX = (state.selection.end / duration) * width;
             const selectionWidth = endX - startX;
 
-            // Fundo escuro fora da seleção
             ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-            ctx.fillRect(0, 0, startX, height); // Esquerda
-            ctx.fillRect(endX, 0, width - endX, height); // Direita
+            ctx.fillRect(0, 0, startX, height);
+            ctx.fillRect(endX, 0, width - endX, height);
 
-            // Borda da seleção
             ctx.strokeStyle = '#fff';
             ctx.lineWidth = 1;
             ctx.beginPath();
@@ -537,17 +551,13 @@
             ctx.lineTo(endX, height);
             ctx.stroke();
 
-            // Marcadores de arraste (handles)
             ctx.fillStyle = '#8b5cf6';
             ctx.fillRect(startX - 2, 0, 4, height);
             ctx.fillRect(endX - 2, 0, 4, height);
 
-            // Região central (opcional: overlay muito sutil)
             ctx.fillStyle = 'rgba(6, 182, 212, 0.1)';
             ctx.fillRect(startX, 0, selectionWidth, height);
         }
-
-        // --- Interação com Mouse (Seleção) ---
 
         function timeFromX(x) {
             const width = canvasWrapper.clientWidth;
@@ -565,11 +575,9 @@
             const x = e.clientX - rect.left;
             const width = rect.width;
             const duration = state.audioBuffer.duration;
-            
             const startTimeX = (state.selection.start / duration) * width;
             const endTimeX = (state.selection.end / duration) * width;
 
-            // Determinar o que clicou (margem de erro de 10px)
             if (Math.abs(x - startTimeX) < 10) {
                 state.selection.dragging = 'start';
             } else if (Math.abs(x - endTimeX) < 10) {
@@ -578,8 +586,6 @@
                 state.selection.dragging = 'region';
                 state.selection.dragOffsetX = x - startTimeX;
             } else {
-                // Clicou fora, iniciar nova seleção ou mover pino mais próximo
-                // Simplificado: move o ponto de início ou fim mais próximo
                 if (x < startTimeX) {
                     state.selection.dragging = 'start';
                     state.selection.start = Math.max(0, timeFromX(x));
@@ -599,26 +605,17 @@
             const width = rect.width;
             const duration = state.audioBuffer.duration;
             let time = timeFromX(x);
-
-            // Limites
             time = Math.max(0, Math.min(duration, time));
 
             if (state.selection.dragging === 'start') {
-                if (time < state.selection.end - 0.01) { // Mínimo 10ms
-                    state.selection.start = time;
-                }
+                if (time < state.selection.end - 0.01) state.selection.start = time;
             } else if (state.selection.dragging === 'end') {
-                if (time > state.selection.start + 0.01) {
-                    state.selection.end = time;
-                }
+                if (time > state.selection.start + 0.01) state.selection.end = time;
             } else if (state.selection.dragging === 'region') {
                 const regionWidth = state.selection.end - state.selection.start;
                 let newStart = time - (state.selection.dragOffsetX / width) * duration;
-                
-                // Limites da região
                 if (newStart < 0) newStart = 0;
                 if (newStart + regionWidth > duration) newStart = duration - regionWidth;
-
                 state.selection.start = newStart;
                 state.selection.end = newStart + regionWidth;
             }
@@ -631,30 +628,24 @@
             state.selection.dragging = null;
         });
 
-        // --- Reprodução ---
-
+        // --- Áudio ---
         function playAudio() {
             if (state.isPlaying) stopAudio();
-            
             const duration = state.selection.end - state.selection.start;
             const offset = state.selection.start;
 
             state.sourceNode = state.audioContext.createBufferSource();
             state.sourceNode.buffer = state.audioBuffer;
             state.sourceNode.connect(state.audioContext.destination);
-            
             state.sourceNode.start(0, offset, duration);
             state.startTime = state.audioContext.currentTime - offset;
             state.isPlaying = true;
-            
             state.sourceNode.onended = () => {
-                if (state.isPlaying) { // Checa se terminou naturalmente
+                if (state.isPlaying) {
                     state.isPlaying = false;
                     currentTimeEl.textContent = formatTime(state.selection.end);
                 }
             };
-
-            // Atualizar cronometro visual
             requestAnimationFrame(updatePlaybackUI);
         }
 
@@ -670,12 +661,10 @@
         function updatePlaybackUI() {
             if (!state.isPlaying) return;
             const current = state.audioContext.currentTime - state.startTime;
-            
             if (current >= state.selection.end) {
                 currentTimeEl.textContent = formatTime(state.selection.end);
                 return;
             }
-            
             currentTimeEl.textContent = formatTime(current);
             requestAnimationFrame(updatePlaybackUI);
         }
@@ -687,8 +676,6 @@
         });
 
         stopBtn.addEventListener('click', stopAudio);
-
-        // --- Atualização Manual de Tempo ---
 
         function parseTime(str) {
             const parts = str.split(':');
@@ -715,51 +702,37 @@
         startInput.addEventListener('change', handleTimeChange);
         endInput.addEventListener('change', handleTimeChange);
 
-        // --- Processamento e Exportação (WAV) ---
-
+        // --- Exportação ---
         downloadBtn.addEventListener('click', () => {
             if (!state.audioBuffer) return;
-
             const start = state.selection.start;
             const end = state.selection.end;
             const duration = end - start;
-
             if (duration <= 0) {
                 showToast('Seleção inválida.', 'error');
                 return;
             }
 
             loader.classList.add('active');
-
-            // Usar setTimeout para permitir que o UI renderize o loader antes do bloqueio da thread
             setTimeout(() => {
                 try {
-                    // 1. Criar novo buffer cortado
                     const sampleRate = state.audioBuffer.sampleRate;
                     const frameCount = Math.floor(duration * sampleRate);
                     const channels = state.audioBuffer.numberOfChannels;
-
                     const newBuffer = state.audioContext.createBuffer(channels, frameCount, sampleRate);
-
-                    // 2. Copiar dados
                     const startOffset = Math.floor(start * sampleRate);
                     for (let i = 0; i < channels; i++) {
                         const oldData = state.audioBuffer.getChannelData(i);
                         const newData = newBuffer.getChannelData(i);
-                        // Copia fatia do array
                         newData.set(oldData.subarray(startOffset, startOffset + frameCount), 0);
                     }
 
-                    // 3. Converter para WAV
                     const wavBlob = bufferToWave(newBuffer, frameCount);
-                    
-                    // 4. Download
                     const url = URL.createObjectURL(wavBlob);
                     const link = document.createElement('a');
                     link.href = url;
                     link.download = `${state.fileName}_cortado.wav`;
                     link.click();
-                    
                     URL.revokeObjectURL(url);
                     showToast('Download iniciado!', 'success');
                 } catch (e) {
@@ -771,8 +744,6 @@
             }, 100);
         });
 
-        // Função utilitária para converter AudioBuffer para WAV Blob
-        // Baseada em implementações padrão da Web Audio API
         function bufferToWave(abuffer, len) {
             let numOfChan = abuffer.numberOfChannels,
                 length = len * numOfChan * 2 + 44,
@@ -782,34 +753,28 @@
                 offset = 0,
                 pos = 0;
 
-            // Escrever Header WAV
-            setUint32(0x46464952);                         // "RIFF"
-            setUint32(length - 8);                         // file length - 8
-            setUint32(0x45564157);                         // "WAVE"
-
-            setUint32(0x20746d66);                         // "fmt " chunk
-            setUint32(16);                                 // length = 16
-            setUint16(1);                                  // PCM (uncompressed)
+            setUint32(0x46464952);
+            setUint32(length - 8);
+            setUint32(0x45564157);
+            setUint32(0x20746d66);
+            setUint32(16);
+            setUint16(1);
             setUint16(numOfChan);
             setUint32(abuffer.sampleRate);
-            setUint32(abuffer.sampleRate * 2 * numOfChan); // avg. bytes/sec
-            setUint16(numOfChan * 2);                      // block-align
-            setUint16(16);                                 // 16-bit (hardcoded in this example)
+            setUint32(abuffer.sampleRate * 2 * numOfChan);
+            setUint16(numOfChan * 2);
+            setUint16(16);
+            setUint32(0x61746164);
+            setUint32(length - pos - 4);
 
-            setUint32(0x61746164);                         // "data" - chunk
-            setUint32(length - pos - 4);                   // chunk length
-
-            // Escrever Interleaved Data
             for(i = 0; i < abuffer.numberOfChannels; i++)
                 channels.push(abuffer.getChannelData(i));
 
             while(pos < len) {
                 for(i = 0; i < numOfChan; i++) {
-                    // clamp
-                    sample = Math.max(-1, Math.min(1, channels[i][pos])); 
-                    // scale to 16-bit signed int
-                    sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767)|0; 
-                    view.setInt16(44 + offset, sample, true); 
+                    sample = Math.max(-1, Math.min(1, channels[i][pos]));
+                    sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767)|0;
+                    view.setInt16(44 + offset, sample, true);
                     offset += 2;
                 }
                 pos++;
@@ -828,8 +793,6 @@
             }
         }
 
-        // --- Utilitários de UI ---
-
         function formatTime(seconds) {
             const m = Math.floor(seconds / 60);
             const s = Math.floor(seconds % 60);
@@ -840,16 +803,12 @@
         function showToast(message, type = 'success') {
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
-            
             let icon = type === 'success' 
                 ? '<svg width="20" height="20" fill="#10b981" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/></svg>'
                 : '<svg width="20" height="20" fill="#ef4444" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8 4a.905.905 0 0 0-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 4zm.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/></svg>';
 
             toast.innerHTML = `${icon} <span>${message}</span>`;
-            
-            const container = document.getElementById('toastContainer');
-            container.appendChild(toast);
-
+            document.getElementById('toastContainer').appendChild(toast);
             setTimeout(() => {
                 toast.style.opacity = '0';
                 toast.style.transform = 'translateX(50px)';
@@ -857,11 +816,9 @@
             }, 3000);
         }
 
-        // Redimensionar janela redesenha o canvas
         window.addEventListener('resize', () => {
             if (state.audioBuffer) drawWaveform();
         });
-
     </script>
 </body>
 </html>
