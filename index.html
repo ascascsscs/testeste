@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>SonicCut Pro | Editor de Áudio</title>
+    <title>SonicKit Pro | Kit de Áudio para Criadores</title>
     <style>
         :root {
             --bg-dark: #09090b;
@@ -75,39 +75,63 @@
             gap: 1rem;
         }
 
-        .dropzone {
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .tab-btn {
+            padding: 0.5rem 1rem;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            color: #000;
+            border-color: var(--primary);
+        }
+
+        /* Tool sections */
+        .tool {
+            display: none;
+            width: 100%;
+        }
+
+        .tool.active {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .dropzone, .tool-section {
             border: 2px dashed var(--border);
             border-radius: 10px;
             padding: 1.6rem 1rem;
             text-align: center;
             background: rgba(255,255,255,0.02);
-            cursor: pointer;
-            user-select: none;
-            transition: all 0.2s;
         }
 
-        .dropzone:hover, .dropzone.dragover {
-            border-color: var(--primary);
-            background: rgba(6, 182, 212, 0.05);
-        }
-
-        .dropzone h3 {
+        .dropzone h3, .tool-section h3 {
             font-size: 1.1rem;
-            margin-bottom: 0.4rem;
+            margin-bottom: 0.6rem;
         }
 
-        .dropzone p {
+        .dropzone p, .tool-section p {
             color: var(--text-muted);
             font-size: 0.8rem;
             line-height: 1.4;
         }
 
-        #fileInput {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            opacity: 0.01;
-            cursor: pointer;
-            z-index: 2;
+        input[type="file"] {
+            margin: 0.5rem 0;
         }
 
         .editor-container {
@@ -121,13 +145,16 @@
             box-shadow: 0 4px 16px rgba(0,0,0,0.3);
         }
 
+        .editor-container.active {
+            display: flex;
+        }
+
         .canvas-wrapper {
             width: 100%;
             height: 150px;
             background: #000;
             border-radius: 5px;
             overflow: hidden;
-            cursor: pointer;
             border: 1px solid var(--border);
             touch-action: none;
         }
@@ -144,7 +171,6 @@
             font-family: monospace;
             font-size: 0.82rem;
             color: var(--primary);
-            margin-top: 0.3rem;
         }
 
         .controls {
@@ -156,6 +182,7 @@
             display: flex;
             gap: 0.6rem;
             justify-content: center;
+            flex-wrap: wrap;
         }
 
         .time-inputs {
@@ -308,11 +335,6 @@
         @keyframes spin { to { transform: rotate(360deg); } }
 
         @media (min-width: 621px) {
-            .controls {
-                display: grid;
-                grid-template-columns: 1fr auto;
-                align-items: end;
-            }
             .quality-row {
                 flex-direction: row;
                 align-items: center;
@@ -327,60 +349,99 @@
 <body>
 
     <header>
-        <div class="logo">SonicCut Pro</div>
-        <div style="font-size:0.7rem; color:var(--text-muted);">MP3</div>
+        <div class="logo">SonicKit Pro</div>
+        <div style="font-size:0.7rem; color:var(--text-muted);">Kit Áudio</div>
     </header>
 
     <main>
         <div class="container">
-            <div class="dropzone" id="dropzone">
-                <input type="file" id="fileInput" accept="audio/*,.mp3,.wav,.ogg,.m4a">
-                <h3>Selecione um áudio</h3>
-                <p>MP3, WAV, OGG, M4A — Toque para escolher</p>
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab-btn active" data-tool="editor-tab">Editor</button>
+                <button class="tab-btn" data-tool="video2audio-tab">Vídeo → Áudio</button>
+                <button class="tab-btn" data-tool="denoise-tab">Remover Ruído</button>
+                <button class="tab-btn" data-tool="compress-tab">Comprimir</button>
             </div>
 
-            <div class="editor-container" id="editor">
-                <div class="canvas-wrapper" id="canvasWrapper">
-                    <canvas id="waveformCanvas"></canvas>
-                    <div class="loader-overlay" id="loader">
-                        <div class="spinner"></div>
-                    </div>
+            <!-- Editor Tab -->
+            <div id="editor-tab" class="tool active">
+                <div class="dropzone" id="dropzone-audio">
+                    <input type="file" id="fileInput" accept="audio/*,.mp3,.wav,.ogg,.m4a">
+                    <h3>Selecione um áudio</h3>
+                    <p>MP3, WAV, OGG, M4A — Toque para escolher</p>
                 </div>
 
-                <div class="time-display">
-                    <span id="currentTime">00:00.00</span>
-                    <span id="totalTime">00:00.00</span>
-                </div>
-
-                <div class="controls">
-                    <div class="btn-row">
-                        <button class="btn" id="playBtn">▶ Tocar</button>
-                        <button class="btn" id="stopBtn">⏹ Parar</button>
-                    </div>
-
-                    <div class="time-inputs">
-                        <div class="time-group">
-                            <label for="startInput">INÍCIO</label>
-                            <input type="text" class="time-input" id="startInput" value="00:00.00">
-                        </div>
-                        <div class="time-group">
-                            <label for="endInput">FIM</label>
-                            <input type="text" class="time-input" id="endInput" value="00:00.00">
+                <div class="editor-container" id="editor">
+                    <div class="canvas-wrapper" id="canvasWrapper">
+                        <canvas id="waveformCanvas"></canvas>
+                        <div class="loader-overlay" id="loader">
+                            <div class="spinner"></div>
                         </div>
                     </div>
 
-                    <div class="quality-row">
-                        <label for="qualitySelect">Qualidade MP3</label>
-                        <select class="quality-select" id="qualitySelect">
-                            <option value="128">128 kbps</option>
-                            <option value="192">192 kbps</option>
-                            <option value="320" selected>320 kbps</option>
-                        </select>
+                    <div class="time-display">
+                        <span id="currentTime">00:00.00</span>
+                        <span id="totalTime">00:00.00</span>
                     </div>
 
-                    <button class="btn btn-primary" id="downloadBtn">
-                        ✂️ Cortar & Baixar MP3
-                    </button>
+                    <div class="controls">
+                        <div class="btn-row">
+                            <button class="btn" id="playBtn">▶ Tocar</button>
+                            <button class="btn" id="stopBtn">⏹ Parar</button>
+                        </div>
+
+                        <div class="time-inputs">
+                            <div class="time-group">
+                                <label for="startInput">INÍCIO</label>
+                                <input type="text" class="time-input" id="startInput" value="00:00.00">
+                            </div>
+                            <div class="time-group">
+                                <label for="endInput">FIM</label>
+                                <input type="text" class="time-input" id="endInput" value="00:00.00">
+                            </div>
+                        </div>
+
+                        <div class="quality-row">
+                            <label for="qualitySelect">Qualidade MP3</label>
+                            <select class="quality-select" id="qualitySelect">
+                                <option value="128">128 kbps</option>
+                                <option value="192">192 kbps</option>
+                                <option value="320" selected>320 kbps</option>
+                            </select>
+                        </div>
+
+                        <button class="btn btn-primary" id="downloadBtn">
+                            ✂️ Cortar & Baixar MP3
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vídeo para Áudio -->
+            <div id="video2audio-tab" class="tool">
+                <div class="tool-section">
+                    <h3>Converter Vídeo para Áudio</h3>
+                    <p>Extraia o áudio de vídeos MP4, MOV, AVI, etc.</p>
+                    <input type="file" id="videoInput" accept="video/*">
+                    <button class="btn" id="convertBtn">Extrair Áudio</button>
+                </div>
+            </div>
+
+            <!-- Remover Ruído -->
+            <div id="denoise-tab" class="tool">
+                <div class="tool-section">
+                    <h3>Remover Ruído de Fundo</h3>
+                    <p>Funciona melhor com voz (entrevistas, podcasts).</p>
+                    <button class="btn" id="denoiseBtn">Remover Ruído</button>
+                </div>
+            </div>
+
+            <!-- Compressor -->
+            <div id="compress-tab" class="tool">
+                <div class="tool-section">
+                    <h3>Comprimir Áudio</h3>
+                    <p>Torna o volume mais uniforme (ótimo para vídeos).</p>
+                    <button class="btn" id="compressBtn">Comprimir Áudio</button>
                 </div>
             </div>
         </div>
@@ -388,10 +449,12 @@
 
     <div class="toast-container" id="toastContainer"></div>
 
-    <!-- MP3 Encoder (leve e rápido) -->
+    <!-- Bibliotecas externas -->
     <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.0/lame.all.min.js"></script>
-    
+    <script src="https://cdn.jsdelivr.net/npm/@voicegain/rnnoise.js@1.0.0/dist/rnnoise.min.js"></script>
+
     <script>
+        // Estado global
         const state = {
             audioContext: null,
             audioBuffer: null,
@@ -405,44 +468,36 @@
         };
 
         // Elementos
-        const dropzone = document.getElementById('dropzone');
-        const fileInput = document.getElementById('fileInput');
-        const editor = document.getElementById('editor');
-        const canvas = document.getElementById('waveformCanvas');
-        const ctx = canvas.getContext('2d');
-        const canvasWrapper = document.getElementById('canvasWrapper');
         const loader = document.getElementById('loader');
-        const playBtn = document.getElementById('playBtn');
-        const stopBtn = document.getElementById('stopBtn');
-        const downloadBtn = document.getElementById('downloadBtn');
-        const qualitySelect = document.getElementById('qualitySelect');
         const currentTimeEl = document.getElementById('currentTime');
         const totalTimeEl = document.getElementById('totalTime');
         const startInput = document.getElementById('startInput');
         const endInput = document.getElementById('endInput');
+        const canvas = document.getElementById('waveformCanvas');
+        const ctx = canvas.getContext('2d');
+        const canvasWrapper = document.getElementById('canvasWrapper');
 
-        // 🔊 Corrigir chiado: usar sampleRate nativo e evitar overdrive
+        // Criar contexto de áudio
         function createAudioContext() {
             if (!state.audioContext) {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
                 state.audioContext = new AudioContext({
-                    sampleRate: 44100, // Padrão CD, evita resampling
+                    sampleRate: 44100,
                     latencyHint: 'interactive'
                 });
             }
         }
 
-        // Ativar áudio no iOS
+        // Destravar áudio no iOS
         function unlockAudio() {
             if (state.audioUnlocked) return true;
             try {
                 createAudioContext();
-                // Tocar áudio silencioso para destravar
                 const buffer = state.audioContext.createBuffer(1, 1, 22050);
                 const source = state.audioContext.createBufferSource();
                 source.buffer = buffer;
                 const gain = state.audioContext.createGain();
-                gain.gain.value = 0; // Silencioso
+                gain.gain.value = 0;
                 source.connect(gain);
                 gain.connect(state.audioContext.destination);
                 source.start(0);
@@ -453,52 +508,12 @@
             }
         }
 
-        // Carregar áudio
-        function handleFile(file) {
-            if (!file) return;
-            const valid = file.type.startsWith('audio/') || 
-                ['.mp3','.wav','.ogg','.m4a'].some(ext => file.name.toLowerCase().endsWith(ext));
-            if (!valid) {
-                showToast('Formato não suportado.', 'error');
-                return;
-            }
-
-            if (!unlockAudio()) {
-                showToast('Erro ao ativar áudio.', 'error');
-                return;
-            }
-
-            state.fileName = file.name.replace(/\.[^/.]+$/, "") || 'audio_cortado';
-            loader.classList.add('active');
-
-            const reader = new FileReader();
-            reader.onload = e => {
-                state.audioContext.decodeAudioData(e.target.result)
-                    .then(buffer => {
-                        state.audioBuffer = buffer;
-                        state.selection.start = 0;
-                        state.selection.end = buffer.duration;
-                        updateUIFromSelection();
-                        editor.style.display = 'flex';
-                        dropzone.style.display = 'none';
-                        drawWaveform();
-                        loader.classList.remove('active');
-                        showToast('Áudio carregado!', 'success');
-                    })
-                    .catch(err => {
-                        loader.classList.remove('active');
-                        showToast('Erro ao carregar áudio.', 'error');
-                    });
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
-        // Atualizar UI com base na seleção
-        function updateUIFromSelection() {
-            if (!state.audioBuffer) return;
-            totalTimeEl.textContent = formatTime(state.audioBuffer.duration);
-            startInput.value = formatTimeInput(state.selection.start);
-            endInput.value = formatTimeInput(state.selection.end);
+        // Formatar tempo para exibição
+        function formatTime(s) {
+            const m = Math.floor(s / 60);
+            const sec = Math.floor(s % 60);
+            const ms = Math.floor((s % 1) * 100);
+            return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
         }
 
         // Formatar para input (MM:SS)
@@ -508,7 +523,7 @@
             return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
         }
 
-        // Parser flexível: aceita 90, 1:30, 1.5
+        // Parser flexível
         function parseTimeInput(str) {
             str = str.trim();
             if (str.includes(':')) {
@@ -520,23 +535,29 @@
             }
         }
 
-        // Dois toques para iOS
-        let firstTouch = true;
-        dropzone.addEventListener('click', () => {
-            if (firstTouch) {
-                unlockAudio();
-                firstTouch = false;
-                showToast('Áudio ativado! Toque novamente para selecionar.', 'success');
-            } else {
-                fileInput.click();
-            }
-        });
+        // Atualizar UI da seleção
+        function updateUIFromSelection() {
+            if (!state.audioBuffer) return;
+            totalTimeEl.textContent = formatTime(state.audioBuffer.duration);
+            startInput.value = formatTimeInput(state.selection.start);
+            endInput.value = formatTimeInput(state.selection.end);
+        }
 
-        fileInput.addEventListener('change', e => {
-            if (e.target.files[0]) handleFile(e.target.files[0]);
-        });
+        // Toast
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            const icon = type === 'success' ? '✅' : '⚠️';
+            toast.innerHTML = `<span>${icon} ${message}</span>`;
+            document.getElementById('toastContainer').appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(30px)';
+                setTimeout(() => toast.remove(), 250);
+            }, 2500);
+        }
 
-        // Waveform leve
+        // Waveform
         function drawWaveform() {
             if (!state.audioBuffer) return;
             const width = canvasWrapper.clientWidth;
@@ -589,20 +610,7 @@
             ctx.fillRect(endX - 1, 0, 2, height);
         }
 
-        // Atualizar seleção por input
-        function updateSelectionFromInputs() {
-            if (!state.audioBuffer) return;
-            const start = Math.max(0, Math.min(parseTimeInput(startInput.value), state.audioBuffer.duration));
-            const end = Math.max(start + 0.01, Math.min(parseTimeInput(endInput.value), state.audioBuffer.duration));
-            state.selection.start = start;
-            state.selection.end = end;
-            drawWaveform();
-        }
-
-        startInput.addEventListener('change', updateSelectionFromInputs);
-        endInput.addEventListener('change', updateSelectionFromInputs);
-
-        // Toque/deslize
+        // Eventos de toque no canvas
         function getX(e) {
             return (e.touches?.[0]?.clientX) ?? e.clientX;
         }
@@ -629,7 +637,20 @@
         canvasWrapper.addEventListener('pointerup', () => state.isTouching = false);
         canvasWrapper.addEventListener('pointercancel', () => state.isTouching = false);
 
-        // Reprodução SEM CHIADO
+        // Atualizar seleção por input
+        function updateSelectionFromInputs() {
+            if (!state.audioBuffer) return;
+            const start = Math.max(0, Math.min(parseTimeInput(startInput.value), state.audioBuffer.duration));
+            const end = Math.max(start + 0.01, Math.min(parseTimeInput(endInput.value), state.audioBuffer.duration));
+            state.selection.start = start;
+            state.selection.end = end;
+            drawWaveform();
+        }
+
+        startInput.addEventListener('change', updateSelectionFromInputs);
+        endInput.addEventListener('change', updateSelectionFromInputs);
+
+        // Reprodução
         function playAudio() {
             if (!state.audioBuffer) return;
             if (!unlockAudio()) return;
@@ -643,7 +664,6 @@
                 return;
             }
 
-            // Garantir que o contexto esteja ativo
             if (state.audioContext.state === 'suspended') {
                 state.audioContext.resume();
             }
@@ -686,44 +706,7 @@
             }
         }
 
-        playBtn.addEventListener('click', playAudio);
-        stopBtn.addEventListener('click', stopAudio);
-
-        // ✅ MP3 com qualidade real
-        downloadBtn.addEventListener('click', () => {
-            if (!state.audioBuffer) return;
-            const start = state.selection.start;
-            const end = state.selection.end;
-            const duration = end - start;
-            if (duration < 0.01) {
-                showToast('Selecione um trecho válido.', 'error');
-                return;
-            }
-
-            loader.classList.add('active');
-            setTimeout(() => {
-                try {
-                    const kbps = parseInt(qualitySelect.value);
-                    const mp3Blob = encodeMP3(state.audioBuffer, start, end, kbps);
-                    const url = URL.createObjectURL(mp3Blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `${state.fileName}_cortado_${kbps}kbps.mp3`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                    showToast(`MP3 ${kbps} kbps baixado!`, 'success');
-                } catch (e) {
-                    console.error(e);
-                    showToast('Erro ao criar MP3.', 'error');
-                } finally {
-                    loader.classList.remove('active');
-                }
-            }, 50);
-        });
-
-        // ✅ Encoder MP3 otimizado
+        // Download MP3
         function encodeMP3(buffer, start, end, kbps) {
             const channels = buffer.numberOfChannels;
             const sampleRate = buffer.sampleRate;
@@ -747,7 +730,7 @@
             const mp3encoder = new lamejs.Mp3Encoder(channels, sampleRate, kbps);
             const mp3Data = [];
 
-            const samplesPerFrame = 576; // Menor = menos travamento no celular
+            const samplesPerFrame = 576;
             for (let i = 0; i < frameCount; i += samplesPerFrame) {
                 const leftChunk = left.subarray(i, i + samplesPerFrame);
                 const rightChunk = right ? right.subarray(i, i + samplesPerFrame) : null;
@@ -763,27 +746,246 @@
             return new Blob(mp3Data, { type: 'audio/mpeg' });
         }
 
-        // Utils
-        function formatTime(s) {
-            const m = Math.floor(s / 60);
-            const sec = Math.floor(s % 60);
-            const ms = Math.floor((s % 1) * 100);
-            return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
-        }
+        // ----------------------------
+        // INICIALIZAÇÃO DAS FERRAMENTAS
+        // ----------------------------
 
-        function showToast(message, type = 'success') {
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            const icon = type === 'success' ? '✅' : '⚠️';
-            toast.innerHTML = `<span>${icon} ${message}</span>`;
-            document.getElementById('toastContainer').appendChild(toast);
+        // 1. Editor de áudio
+        let firstTouch = true;
+        document.getElementById('dropzone-audio').addEventListener('click', () => {
+            if (firstTouch) {
+                unlockAudio();
+                firstTouch = false;
+                showToast('Áudio ativado! Toque novamente para selecionar.', 'success');
+            } else {
+                document.getElementById('fileInput').click();
+            }
+        });
+
+        document.getElementById('fileInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const valid = file.type.startsWith('audio/') || 
+                ['.mp3','.wav','.ogg','.m4a'].some(ext => file.name.toLowerCase().endsWith(ext));
+            if (!valid) {
+                showToast('Formato não suportado.', 'error');
+                return;
+            }
+
+            if (!unlockAudio()) {
+                showToast('Erro ao ativar áudio.', 'error');
+                return;
+            }
+
+            state.fileName = file.name.replace(/\.[^/.]+$/, "") || 'audio_cortado';
+            loader.classList.add('active');
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                state.audioContext.decodeAudioData(e.target.result)
+                    .then(buffer => {
+                        state.audioBuffer = buffer;
+                        state.selection.start = 0;
+                        state.selection.end = buffer.duration;
+                        updateUIFromSelection();
+                        document.getElementById('editor').classList.add('active');
+                        drawWaveform();
+                        loader.classList.remove('active');
+                        showToast('Áudio carregado!', 'success');
+                    })
+                    .catch(err => {
+                        loader.classList.remove('active');
+                        showToast('Erro ao carregar áudio.', 'error');
+                    });
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        document.getElementById('playBtn').addEventListener('click', playAudio);
+        document.getElementById('stopBtn').addEventListener('click', stopAudio);
+
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            if (!state.audioBuffer) return;
+            const start = state.selection.start;
+            const end = state.selection.end;
+            const duration = end - start;
+            if (duration < 0.01) {
+                showToast('Selecione um trecho válido.', 'error');
+                return;
+            }
+
+            loader.classList.add('active');
             setTimeout(() => {
-                toast.style.opacity = '0';
-                toast.style.transform = 'translateX(30px)';
-                setTimeout(() => toast.remove(), 250);
-            }, 2500);
-        }
+                try {
+                    const kbps = parseInt(document.getElementById('qualitySelect').value);
+                    const mp3Blob = encodeMP3(state.audioBuffer, start, end, kbps);
+                    const url = URL.createObjectURL(mp3Blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${state.fileName}_cortado_${kbps}kbps.mp3`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    showToast(`MP3 ${kbps} kbps baixado!`, 'success');
+                } catch (e) {
+                    console.error(e);
+                    showToast('Erro ao criar MP3.', 'error');
+                } finally {
+                    loader.classList.remove('active');
+                }
+            }, 50);
+        });
 
+        // 2. Vídeo para Áudio
+        document.getElementById('convertBtn').addEventListener('click', async () => {
+            const videoFile = document.getElementById('videoInput').files[0];
+            if (!videoFile) {
+                showToast('Selecione um vídeo primeiro.', 'error');
+                return;
+            }
+
+            loader.classList.add('active');
+
+            try {
+                const videoUrl = URL.createObjectURL(videoFile);
+                createAudioContext();
+
+                const video = document.createElement('video');
+                video.src = videoUrl;
+                video.muted = true;
+
+                video.onloadedmetadata = async () => {
+                    const channels = video.webkitAudioDecodedByteCount ? 2 : 1;
+                    const offlineCtx = new OfflineAudioContext(
+                        channels,
+                        state.audioContext.sampleRate * video.duration,
+                        state.audioContext.sampleRate
+                    );
+
+                    const source = offlineCtx.createMediaElementSource(video);
+                    source.connect(offlineCtx.destination);
+
+                    const renderedBuffer = await offlineCtx.startRendering();
+
+                    state.audioBuffer = renderedBuffer;
+                    state.selection.start = 0;
+                    state.selection.end = renderedBuffer.duration;
+                    state.fileName = videoFile.name.replace(/\.[^/.]+$/, "") + "_audio";
+
+                    document.getElementById('editor').classList.add('active');
+                    document.querySelector('[data-tool="editor-tab"]').click();
+                    updateUIFromSelection();
+                    drawWaveform();
+
+                    URL.revokeObjectURL(videoUrl);
+                    loader.classList.remove('active');
+                    showToast('Áudio extraído com sucesso!', 'success');
+                };
+            } catch (e) {
+                console.error(e);
+                loader.classList.remove('active');
+                showToast('Erro ao extrair áudio.', 'error');
+            }
+        });
+
+        // 3. Remover Ruído
+        document.getElementById('denoiseBtn').addEventListener('click', async () => {
+            if (!state.audioBuffer) {
+                showToast('Carregue um áudio primeiro.', 'error');
+                return;
+            }
+
+            loader.classList.add('active');
+            showToast('Processando... pode levar alguns segundos.', 'success');
+
+            try {
+                const monoData = state.audioBuffer.getChannelData(0);
+                const denoiser = new RNNoise();
+                const chunkSize = 480;
+                const output = new Float32Array(monoData.length);
+
+                for (let i = 0; i < monoData.length; i += chunkSize) {
+                    const chunk = monoData.slice(i, i + chunkSize);
+                    const padded = new Float32Array(chunkSize);
+                    padded.set(chunk);
+                    const denoised = denoiser.processAudioFrame(padded);
+                    output.set(denoised, i);
+                }
+
+                denoiser.destroy();
+
+                const newBuffer = state.audioContext.createBuffer(1, output.length, 48000);
+                newBuffer.getChannelData(0).set(output);
+
+                state.audioBuffer = newBuffer;
+                state.selection.end = newBuffer.duration;
+                updateUIFromSelection();
+                drawWaveform();
+
+                loader.classList.remove('active');
+                showToast('Ruído removido com sucesso!', 'success');
+            } catch (e) {
+                console.error(e);
+                loader.classList.remove('active');
+                showToast('Erro ao remover ruído.', 'error');
+            }
+        });
+
+        // 4. Compressor
+        document.getElementById('compressBtn').addEventListener('click', () => {
+            if (!state.audioBuffer) {
+                showToast('Carregue um áudio primeiro.', 'error');
+                return;
+            }
+
+            loader.classList.add('active');
+
+            try {
+                const offlineCtx = new OfflineAudioContext(
+                    state.audioBuffer.numberOfChannels,
+                    state.audioBuffer.length,
+                    state.audioBuffer.sampleRate
+                );
+
+                const source = offlineCtx.createBufferSource();
+                source.buffer = state.audioBuffer;
+
+                const compressor = offlineCtx.createDynamicsCompressor();
+                compressor.threshold.value = -24;
+                compressor.knee.value = 30;
+                compressor.ratio.value = 12;
+                compressor.attack.value = 0.003;
+                compressor.release.value = 0.25;
+
+                source.connect(compressor);
+                compressor.connect(offlineCtx.destination);
+                source.start(0);
+
+                offlineCtx.startRendering().then(renderedBuffer => {
+                    state.audioBuffer = renderedBuffer;
+                    drawWaveform();
+                    loader.classList.remove('active');
+                    showToast('Áudio comprimido!', 'success');
+                });
+            } catch (e) {
+                loader.classList.remove('active');
+                showToast('Erro ao comprimir.', 'error');
+            }
+        });
+
+        // 5. Abas
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn, .tool').forEach(el => {
+                    el.classList.remove('active');
+                });
+                btn.classList.add('active');
+                document.getElementById(btn.dataset.tool).classList.add('active');
+            });
+        });
+
+        // Resize
         window.addEventListener('resize', () => {
             if (state.audioBuffer) drawWaveform();
         });
