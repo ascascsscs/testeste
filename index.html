@@ -75,7 +75,6 @@
             gap: 1rem;
         }
 
-        /* Tabs */
         .tabs {
             display: flex;
             gap: 0.5rem;
@@ -99,7 +98,6 @@
             border-color: var(--primary);
         }
 
-        /* Tool sections */
         .tool {
             display: none;
             width: 100%;
@@ -355,7 +353,6 @@
 
     <main>
         <div class="container">
-            <!-- Tabs -->
             <div class="tabs">
                 <button class="tab-btn active" data-tool="editor-tab">Editor</button>
                 <button class="tab-btn" data-tool="video2audio-tab">Vídeo → Áudio</button>
@@ -363,7 +360,7 @@
                 <button class="tab-btn" data-tool="compress-tab">Comprimir</button>
             </div>
 
-            <!-- Editor Tab -->
+            <!-- Editor -->
             <div id="editor-tab" class="tool active">
                 <div class="dropzone" id="dropzone-audio">
                     <input type="file" id="fileInput" accept="audio/*,.mp3,.wav,.ogg,.m4a">
@@ -421,8 +418,8 @@
             <div id="video2audio-tab" class="tool">
                 <div class="tool-section">
                     <h3>Converter Vídeo para Áudio</h3>
-                    <p>Extraia o áudio de vídeos MP4, MOV, AVI, etc.</p>
-                    <input type="file" id="videoInput" accept="video/*">
+                    <p>Funciona com MP4, MOV (Chrome, Edge, Firefox)</p>
+                    <input type="file" id="videoInput" accept="video/mp4,video/quicktime,video/webm">
                     <button class="btn" id="convertBtn">Extrair Áudio</button>
                 </div>
             </div>
@@ -431,7 +428,7 @@
             <div id="denoise-tab" class="tool">
                 <div class="tool-section">
                     <h3>Remover Ruído de Fundo</h3>
-                    <p>Funciona melhor com voz (entrevistas, podcasts).</p>
+                    <p>Só funciona bem com VOZ (podcast, narração)</p>
                     <button class="btn" id="denoiseBtn">Remover Ruído</button>
                 </div>
             </div>
@@ -440,7 +437,7 @@
             <div id="compress-tab" class="tool">
                 <div class="tool-section">
                     <h3>Comprimir Áudio</h3>
-                    <p>Torna o volume mais uniforme (ótimo para vídeos).</p>
+                    <p>Torna o volume mais uniforme</p>
                     <button class="btn" id="compressBtn">Comprimir Áudio</button>
                 </div>
             </div>
@@ -449,12 +446,11 @@
 
     <div class="toast-container" id="toastContainer"></div>
 
-    <!-- Bibliotecas externas -->
+    <!-- Bibliotecas -->
     <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.0/lame.all.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@voicegain/rnnoise.js@1.0.0/dist/rnnoise.min.js"></script>
 
     <script>
-        // Estado global
         const state = {
             audioContext: null,
             audioBuffer: null,
@@ -467,7 +463,6 @@
             touchStartX: 0
         };
 
-        // Elementos
         const loader = document.getElementById('loader');
         const currentTimeEl = document.getElementById('currentTime');
         const totalTimeEl = document.getElementById('totalTime');
@@ -477,7 +472,6 @@
         const ctx = canvas.getContext('2d');
         const canvasWrapper = document.getElementById('canvasWrapper');
 
-        // Criar contexto de áudio
         function createAudioContext() {
             if (!state.audioContext) {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -488,7 +482,6 @@
             }
         }
 
-        // Destravar áudio no iOS
         function unlockAudio() {
             if (state.audioUnlocked) return true;
             try {
@@ -508,7 +501,6 @@
             }
         }
 
-        // Formatar tempo para exibição
         function formatTime(s) {
             const m = Math.floor(s / 60);
             const sec = Math.floor(s % 60);
@@ -516,14 +508,12 @@
             return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
         }
 
-        // Formatar para input (MM:SS)
         function formatTimeInput(seconds) {
             const m = Math.floor(seconds / 60);
             const s = Math.floor(seconds % 60);
             return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
         }
 
-        // Parser flexível
         function parseTimeInput(str) {
             str = str.trim();
             if (str.includes(':')) {
@@ -535,7 +525,6 @@
             }
         }
 
-        // Atualizar UI da seleção
         function updateUIFromSelection() {
             if (!state.audioBuffer) return;
             totalTimeEl.textContent = formatTime(state.audioBuffer.duration);
@@ -543,7 +532,6 @@
             endInput.value = formatTimeInput(state.selection.end);
         }
 
-        // Toast
         function showToast(message, type = 'success') {
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
@@ -557,7 +545,6 @@
             }, 2500);
         }
 
-        // Waveform
         function drawWaveform() {
             if (!state.audioBuffer) return;
             const width = canvasWrapper.clientWidth;
@@ -610,7 +597,6 @@
             ctx.fillRect(endX - 1, 0, 2, height);
         }
 
-        // Eventos de toque no canvas
         function getX(e) {
             return (e.touches?.[0]?.clientX) ?? e.clientX;
         }
@@ -637,7 +623,6 @@
         canvasWrapper.addEventListener('pointerup', () => state.isTouching = false);
         canvasWrapper.addEventListener('pointercancel', () => state.isTouching = false);
 
-        // Atualizar seleção por input
         function updateSelectionFromInputs() {
             if (!state.audioBuffer) return;
             const start = Math.max(0, Math.min(parseTimeInput(startInput.value), state.audioBuffer.duration));
@@ -650,7 +635,6 @@
         startInput.addEventListener('change', updateSelectionFromInputs);
         endInput.addEventListener('change', updateSelectionFromInputs);
 
-        // Reprodução
         function playAudio() {
             if (!state.audioBuffer) return;
             if (!unlockAudio()) return;
@@ -706,7 +690,6 @@
             }
         }
 
-        // Download MP3
         function encodeMP3(buffer, start, end, kbps) {
             const channels = buffer.numberOfChannels;
             const sampleRate = buffer.sampleRate;
@@ -747,10 +730,10 @@
         }
 
         // ----------------------------
-        // INICIALIZAÇÃO DAS FERRAMENTAS
+        // FERRAMENTAS CORRIGIDAS
         // ----------------------------
 
-        // 1. Editor de áudio
+        // Editor de áudio
         let firstTouch = true;
         document.getElementById('dropzone-audio').addEventListener('click', () => {
             if (firstTouch) {
@@ -837,7 +820,7 @@
             }, 50);
         });
 
-        // 2. Vídeo para Áudio
+        // ✅ Vídeo para Áudio (CORRIGIDO)
         document.getElementById('convertBtn').addEventListener('click', async () => {
             const videoFile = document.getElementById('videoInput').files[0];
             if (!videoFile) {
@@ -845,72 +828,137 @@
                 return;
             }
 
+            if (!window.OfflineAudioContext) {
+                showToast('Use Chrome, Edge ou Firefox para esta função.', 'error');
+                return;
+            }
+
+            if (!unlockAudio()) {
+                showToast('Toque em "Selecionar áudio" antes de usar esta ferramenta.', 'error');
+                return;
+            }
+
             loader.classList.add('active');
+            showToast('Processando... pode levar 5-10 segundos.', 'success');
 
             try {
                 const videoUrl = URL.createObjectURL(videoFile);
-                createAudioContext();
+                const audio = new Audio();
+                audio.src = videoUrl;
+                audio.muted = true;
 
-                const video = document.createElement('video');
-                video.src = videoUrl;
-                video.muted = true;
+                await new Promise((resolve, reject) => {
+                    audio.onloadedmetadata = () => resolve();
+                    audio.onerror = () => reject(new Error('Formato não suportado'));
+                    setTimeout(() => reject(new Error('Tempo esgotado')), 10000);
+                });
 
-                video.onloadedmetadata = async () => {
-                    const channels = video.webkitAudioDecodedByteCount ? 2 : 1;
-                    const offlineCtx = new OfflineAudioContext(
-                        channels,
-                        state.audioContext.sampleRate * video.duration,
-                        state.audioContext.sampleRate
-                    );
+                const duration = audio.duration;
+                if (!duration || duration <= 0) throw new Error('Vídeo inválido');
 
-                    const source = offlineCtx.createMediaElementSource(video);
-                    source.connect(offlineCtx.destination);
+                const sampleRate = 44100;
+                const offlineCtx = new OfflineAudioContext(1, Math.floor(sampleRate * duration), sampleRate);
 
-                    const renderedBuffer = await offlineCtx.startRendering();
+                const source = offlineCtx.createMediaElementSource(audio);
+                source.connect(offlineCtx.destination);
 
-                    state.audioBuffer = renderedBuffer;
-                    state.selection.start = 0;
-                    state.selection.end = renderedBuffer.duration;
-                    state.fileName = videoFile.name.replace(/\.[^/.]+$/, "") + "_audio";
+                const renderedBuffer = await offlineCtx.startRendering();
 
-                    document.getElementById('editor').classList.add('active');
-                    document.querySelector('[data-tool="editor-tab"]').click();
-                    updateUIFromSelection();
-                    drawWaveform();
+                state.audioBuffer = renderedBuffer;
+                state.selection.start = 0;
+                state.selection.end = renderedBuffer.duration;
+                state.fileName = videoFile.name.replace(/\.[^/.]+$/, "") + "_audio";
 
-                    URL.revokeObjectURL(videoUrl);
-                    loader.classList.remove('active');
-                    showToast('Áudio extraído com sucesso!', 'success');
-                };
+                document.getElementById('editor').classList.add('active');
+                document.querySelector('[data-tool="editor-tab"]').click();
+                updateUIFromSelection();
+                drawWaveform();
+
+                URL.revokeObjectURL(videoUrl);
+                loader.classList.remove('active');
+                showToast('Áudio extraído com sucesso!', 'success');
             } catch (e) {
                 console.error(e);
                 loader.classList.remove('active');
-                showToast('Erro ao extrair áudio.', 'error');
+                showToast(`Erro: ${e.message || 'Formato não suportado'}`, 'error');
             }
         });
 
-        // 3. Remover Ruído
+        // ✅ Função de resampling para RNNoise
+        function resampleTo48kHz(buffer) {
+            const originalRate = buffer.sampleRate;
+            const targetRate = 48000;
+            const ratio = targetRate / originalRate;
+            const newLength = Math.floor(buffer.length * ratio);
+
+            const newBuffer = state.audioContext.createBuffer(1, newLength, targetRate);
+            const original = buffer.getChannelData(0);
+            const newData = newBuffer.getChannelData(0);
+
+            for (let i = 0; i < newLength; i++) {
+                const srcIndex = Math.floor(i / ratio);
+                newData[i] = srcIndex < original.length ? original[srcIndex] : 0;
+            }
+
+            return newBuffer;
+        }
+
+        // ✅ Remover Ruído (CORRIGIDO)
         document.getElementById('denoiseBtn').addEventListener('click', async () => {
             if (!state.audioBuffer) {
                 showToast('Carregue um áudio primeiro.', 'error');
                 return;
             }
 
+            if (typeof RNNoise === 'undefined') {
+                showToast('Carregando IA... aguarde 2 segundos.', 'success');
+                await new Promise(r => setTimeout(r, 2000));
+                if (typeof RNNoise === 'undefined') {
+                    showToast('Erro ao carregar IA. Recarregue a página.', 'error');
+                    return;
+                }
+            }
+
+            if (!unlockAudio()) {
+                showToast('Toque em "Tocar" antes de usar esta ferramenta.', 'error');
+                return;
+            }
+
             loader.classList.add('active');
-            showToast('Processando... pode levar alguns segundos.', 'success');
+            showToast('Removendo ruído... (só funciona com VOZ)', 'success');
 
             try {
-                const monoData = state.audioBuffer.getChannelData(0);
+                let monoData;
+                if (state.audioBuffer.numberOfChannels > 1) {
+                    const left = state.audioBuffer.getChannelData(0);
+                    const right = state.audioBuffer.getChannelData(1);
+                    monoData = new Float32Array(left.length);
+                    for (let i = 0; i < left.length; i++) {
+                        monoData[i] = (left[i] + right[i]) / 2;
+                    }
+                } else {
+                    monoData = state.audioBuffer.getChannelData(0);
+                }
+
+                let processBuffer;
+                if (state.audioBuffer.sampleRate !== 48000) {
+                    const temp = state.audioContext.createBuffer(1, monoData.length, state.audioBuffer.sampleRate);
+                    temp.getChannelData(0).set(monoData);
+                    const resampled = resampleTo48kHz(temp);
+                    monoData = resampled.getChannelData(0);
+                }
+
                 const denoiser = new RNNoise();
                 const chunkSize = 480;
                 const output = new Float32Array(monoData.length);
 
                 for (let i = 0; i < monoData.length; i += chunkSize) {
-                    const chunk = monoData.slice(i, i + chunkSize);
+                    const end = Math.min(i + chunkSize, monoData.length);
+                    const chunk = monoData.slice(i, end);
                     const padded = new Float32Array(chunkSize);
                     padded.set(chunk);
                     const denoised = denoiser.processAudioFrame(padded);
-                    output.set(denoised, i);
+                    output.set(denoised.subarray(0, end - i), i);
                 }
 
                 denoiser.destroy();
@@ -924,15 +972,15 @@
                 drawWaveform();
 
                 loader.classList.remove('active');
-                showToast('Ruído removido com sucesso!', 'success');
+                showToast('Ruído removido! (voz apenas)', 'success');
             } catch (e) {
                 console.error(e);
                 loader.classList.remove('active');
-                showToast('Erro ao remover ruído.', 'error');
+                showToast('Erro no processamento. Tente com outro áudio.', 'error');
             }
         });
 
-        // 4. Compressor
+        // Compressor
         document.getElementById('compressBtn').addEventListener('click', () => {
             if (!state.audioBuffer) {
                 showToast('Carregue um áudio primeiro.', 'error');
@@ -974,7 +1022,7 @@
             }
         });
 
-        // 5. Abas
+        // Tabs
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.tab-btn, .tool').forEach(el => {
@@ -985,7 +1033,6 @@
             });
         });
 
-        // Resize
         window.addEventListener('resize', () => {
             if (state.audioBuffer) drawWaveform();
         });
