@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>SonicCut Pro | Editor de Áudio</title>
     <style>
         :root {
@@ -22,7 +22,7 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
 
         body {
@@ -33,30 +33,28 @@
             flex-direction: column;
             overflow: hidden;
             background-image: 
-                radial-gradient(circle at 15% 50%, rgba(6, 182, 212, 0.05), transparent 25%),
-                radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.05), transparent 25%);
+                radial-gradient(circle at 15% 50%, rgba(6, 182, 212, 0.03), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.03), transparent 25%);
             touch-action: manipulation;
         }
 
         header {
-            padding: 1rem 1.5rem;
+            padding: 0.9rem 1.2rem;
             border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
             background: rgba(9, 9, 11, 0.8);
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(8px);
             z-index: 10;
         }
 
         .logo {
-            font-size: 1.4rem;
+            font-size: 1.3rem;
             font-weight: 700;
-            letter-spacing: -1px;
             background: linear-gradient(135deg, var(--primary), var(--secondary));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 15px var(--primary-glow);
         }
 
         main {
@@ -64,136 +62,96 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-start;
-            padding: 1rem;
-            position: relative;
+            padding: 0.8rem;
             overflow-y: auto;
         }
 
         .container {
             width: 100%;
-            max-width: 900px;
+            max-width: 850px;
             display: flex;
             flex-direction: column;
-            gap: 1.2rem;
+            gap: 1rem;
         }
 
         .dropzone {
             border: 2px dashed var(--border);
-            border-radius: 12px;
-            padding: 2rem 1.5rem;
+            border-radius: 10px;
+            padding: 1.8rem 1.2rem;
             text-align: center;
-            background: rgba(255, 255, 255, 0.02);
+            background: rgba(255,255,255,0.02);
             cursor: pointer;
-            position: relative;
             user-select: none;
-            transition: all 0.25s ease;
         }
 
-        .dropzone:active {
-            transform: scale(0.98);
-        }
-
-        .dropzone h3 {
-            font-size: 1.2rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .dropzone p {
-            color: var(--text-muted);
-            font-size: 0.85rem;
-            line-height: 1.4;
-        }
+        .dropzone h3 { font-size: 1.15rem; margin-bottom: 0.4rem; }
+        .dropzone p { color: var(--text-muted); font-size: 0.82rem; line-height: 1.4; }
 
         #fileInput {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            opacity: 0.01;
-            cursor: pointer;
-            z-index: 2;
+            top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0.01; cursor: pointer; z-index: 2;
         }
 
         .editor-container {
             background: var(--bg-panel);
             border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 1.2rem;
+            border-radius: 10px;
+            padding: 1rem;
             display: none;
             flex-direction: column;
-            gap: 1rem;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            gap: 0.9rem;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
         }
 
         .canvas-wrapper {
-            position: relative;
             width: 100%;
-            height: 180px;
+            height: 160px;
             background: #000;
-            border-radius: 6px;
+            border-radius: 5px;
             overflow: hidden;
             cursor: pointer;
             border: 1px solid var(--border);
             touch-action: none;
         }
 
-        canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
-        }
+        canvas { display: block; width: 100%; height: 100%; }
 
         .time-display {
             display: flex;
             justify-content: space-between;
-            font-family: 'Courier New', monospace;
-            font-size: 0.85rem;
+            font-family: monospace;
+            font-size: 0.83rem;
             color: var(--primary);
         }
 
         .controls {
             display: grid;
             grid-template-columns: 1fr auto;
-            gap: 1rem;
+            gap: 0.9rem;
             align-items: center;
         }
 
-        .btn-group {
-            display: flex;
-            gap: 0.6rem;
-            justify-content: center;
-        }
-
-        .quality-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.4rem;
-        }
-
-        .quality-group label {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-        }
-
+        .btn-group { display: flex; gap: 0.5rem; justify-content: center; }
+        .quality-group { display: flex; flex-direction: column; gap: 0.3rem; }
+        .quality-group label { font-size: 0.72rem; color: var(--text-muted); }
         .quality-select {
             background: var(--bg-dark);
             color: var(--text-main);
             border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 0.4rem 0.8rem;
-            font-size: 0.9rem;
-            width: 140px;
+            border-radius: 5px;
+            padding: 0.35rem 0.7rem;
+            font-size: 0.85rem;
+            width: 130px;
         }
 
         .btn {
-            padding: 0.6rem 1rem;
-            border-radius: 6px;
+            padding: 0.55rem 0.9rem;
+            border-radius: 5px;
             border: 1px solid var(--border);
             background: rgba(255,255,255,0.03);
             color: var(--text-main);
-            font-size: 0.9rem;
+            font-size: 0.87rem;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -201,100 +159,77 @@
             justify-content: center;
         }
 
-        .btn:hover:not(:disabled) {
-            background: rgba(255,255,255,0.08);
-        }
-
+        .btn:hover:not(:disabled) { background: rgba(255,255,255,0.08); }
         .btn-primary {
             background: linear-gradient(135deg, var(--primary), #0891b2);
             border: none;
             color: #000;
             font-weight: 600;
-            box-shadow: 0 0 12px var(--primary-glow);
+            box-shadow: 0 0 10px var(--primary-glow);
         }
-
         .btn-primary:hover:not(:disabled) {
-            box-shadow: 0 0 20px var(--primary-glow);
+            box-shadow: 0 0 18px var(--primary-glow);
             background: linear-gradient(135deg, #22d3ee, #06b6d4);
         }
-
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
         .toast-container {
             position: fixed;
-            bottom: 1.5rem;
-            right: 1.5rem;
+            bottom: 1.2rem;
+            right: 1.2rem;
             z-index: 100;
         }
 
         .toast {
             background: var(--bg-panel);
             border: 1px solid var(--border);
-            border-left: 4px solid var(--primary);
-            padding: 0.9rem 1.4rem;
+            border-left: 3px solid var(--primary);
+            padding: 0.8rem 1.2rem;
             border-radius: 4px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
             display: flex;
             align-items: center;
-            gap: 0.7rem;
-            animation: slideInRight 0.3s ease;
-            max-width: 320px;
-            font-size: 0.9rem;
+            gap: 0.6rem;
+            animation: slideIn 0.25s ease;
+            max-width: 300px;
+            font-size: 0.88rem;
         }
 
         .toast.success { border-color: var(--success); }
         .toast.error { border-color: var(--danger); }
 
-        @keyframes slideInRight {
-            from { opacity: 0; transform: translateX(40px); }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(30px); }
             to { opacity: 1; transform: translateX(0); }
         }
 
         .loader-overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7);
+            background: rgba(0,0,0,0.75);
             display: flex;
             justify-content: center;
             align-items: center;
             z-index: 20;
-            backdrop-filter: blur(2px);
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.3s;
+            transition: opacity 0.25s;
         }
         .loader-overlay.active { opacity: 1; pointer-events: all; }
 
         .spinner {
-            width: 36px; height: 36px;
-            border: 3px solid rgba(255,255,255,0.1);
+            width: 32px; height: 32px;
+            border: 2.5px solid rgba(255,255,255,0.15);
             border-top-color: var(--primary);
             border-radius: 50%;
-            animation: spin 1s linear infinite;
+            animation: spin 0.9s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        @media (max-width: 650px) {
-            .controls {
-                grid-template-columns: 1fr;
-                gap: 1.2rem;
-            }
-            .btn {
-                padding: 0.55rem 0.9rem;
-                font-size: 0.87rem;
-            }
-            .quality-select {
-                width: 100%;
-            }
-            header {
-                padding: 0.9rem 1.2rem;
-            }
-            .dropzone {
-                padding: 1.8rem 1.2rem;
-            }
+        @media (max-width: 620px) {
+            .controls { grid-template-columns: 1fr; gap: 1rem; }
+            .quality-select { width: 100%; }
+            .btn { padding: 0.5rem 0.8rem; font-size: 0.85rem; }
         }
     </style>
 </head>
@@ -302,15 +237,15 @@
 
     <header>
         <div class="logo">SonicCut Pro</div>
-        <div style="font-size:0.75rem; color:var(--text-muted);">móvel</div>
+        <div style="font-size:0.72rem; color:var(--text-muted);">MP3</div>
     </header>
 
     <main>
         <div class="container">
             <div class="dropzone" id="dropzone">
-                <input type="file" id="fileInput" accept="audio/*,.mp3,.wav,.ogg,.m4a,.aac">
+                <input type="file" id="fileInput" accept="audio/*,.mp3,.wav,.ogg,.m4a">
                 <h3>Selecione um áudio</h3>
-                <p>MP3, WAV, OGG, M4A — Toque aqui para escolher</p>
+                <p>MP3, WAV, OGG, M4A — Toque para escolher</p>
             </div>
 
             <div class="editor-container" id="editor">
@@ -328,28 +263,21 @@
 
                 <div class="controls">
                     <div class="btn-group">
-                        <button class="btn" id="playBtn">
-                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M11.596 8.697l-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/></svg>
-                            Tocar
-                        </button>
-                        <button class="btn" id="stopBtn">
-                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M5 3.5h6A1.5 1.5 0 0 1 12.5 5v6a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 11V5A1.5 1.5 0 0 1 5 3.5z"/></svg>
-                            Parar
-                        </button>
+                        <button class="btn" id="playBtn">▶ Tocar</button>
+                        <button class="btn" id="stopBtn">⏹ Parar</button>
                     </div>
 
                     <div class="quality-group">
-                        <label for="qualitySelect">Qualidade do áudio</label>
+                        <label for="qualitySelect">Qualidade MP3</label>
                         <select class="quality-select" id="qualitySelect">
-                            <option value="low">Baixa (16 kHz, mono)</option>
-                            <option value="medium" selected>Média (22 kHz, stereo)</option>
-                            <option value="high">Alta (44.1 kHz, stereo)</option>
+                            <option value="128">128 kbps</option>
+                            <option value="192">192 kbps</option>
+                            <option value="320" selected>320 kbps</option>
                         </select>
                     </div>
 
                     <button class="btn btn-primary" id="downloadBtn" style="grid-column: span 2;">
-                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
-                        Cortar & Baixar
+                        ✂️ Cortar & Baixar MP3
                     </button>
                 </div>
             </div>
@@ -358,6 +286,9 @@
 
     <div class="toast-container" id="toastContainer"></div>
 
+    <!-- Incluir lamejs (MP3 encoder) -->
+    <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.0/lame.all.min.js"></script>
+    
     <script>
         const state = {
             audioContext: null,
@@ -367,10 +298,11 @@
             selection: { start: 0, end: 0 },
             fileName: 'audio_cortado',
             audioUnlocked: false,
-            touchStartX: 0,
-            isTouching: false
+            isTouching: false,
+            touchStartX: 0
         };
 
+        // Elementos
         const dropzone = document.getElementById('dropzone');
         const fileInput = document.getElementById('fileInput');
         const editor = document.getElementById('editor');
@@ -385,6 +317,7 @@
         const currentTimeEl = document.getElementById('currentTime');
         const totalTimeEl = document.getElementById('totalTime');
 
+        // Ativar áudio no iOS
         function unlockAudio() {
             if (state.audioUnlocked) return true;
             try {
@@ -399,24 +332,22 @@
                 state.audioUnlocked = true;
                 return true;
             } catch (e) {
-                console.warn("Falha ao destravar áudio:", e);
                 return false;
             }
         }
 
+        // Carregar áudio
         function handleFile(file) {
             if (!file) return;
             const valid = file.type.startsWith('audio/') || 
-                ['.mp3','.wav','.ogg','.m4a','.aac'].some(ext => 
-                    file.name.toLowerCase().endsWith(ext)
-                );
+                ['.mp3','.wav','.ogg','.m4a'].some(ext => file.name.toLowerCase().endsWith(ext));
             if (!valid) {
                 showToast('Formato não suportado.', 'error');
                 return;
             }
 
             if (!unlockAudio()) {
-                showToast('Erro ao ativar áudio. Tente novamente.', 'error');
+                showToast('Erro ao ativar áudio.', 'error');
                 return;
             }
 
@@ -424,13 +355,12 @@
             loader.classList.add('active');
 
             const reader = new FileReader();
-            reader.onload = (e) => {
+            reader.onload = e => {
                 state.audioContext.decodeAudioData(e.target.result)
                     .then(buffer => {
                         state.audioBuffer = buffer;
                         state.selection.start = 0;
                         state.selection.end = buffer.duration;
-
                         totalTimeEl.textContent = formatTime(buffer.duration);
                         currentTimeEl.textContent = formatTime(0);
                         editor.style.display = 'flex';
@@ -440,29 +370,30 @@
                         showToast('Áudio carregado!', 'success');
                     })
                     .catch(err => {
-                        console.error(err);
                         loader.classList.remove('active');
-                        showToast('Não foi possível carregar o áudio.', 'error');
+                        showToast('Erro ao carregar áudio.', 'error');
                     });
             };
             reader.readAsArrayBuffer(file);
         }
 
+        // Dois toques para iOS
         let firstTouch = true;
         dropzone.addEventListener('click', () => {
             if (firstTouch) {
                 unlockAudio();
                 firstTouch = false;
-                showToast('Áudio ativado! Toque novamente para selecionar um arquivo.', 'success');
+                showToast('Áudio ativado! Toque novamente para selecionar.', 'success');
             } else {
                 fileInput.click();
             }
         });
 
-        fileInput.addEventListener('change', (e) => {
+        fileInput.addEventListener('change', e => {
             if (e.target.files[0]) handleFile(e.target.files[0]);
         });
 
+        // Waveform leve
         function drawWaveform() {
             if (!state.audioBuffer) return;
             const width = canvasWrapper.clientWidth;
@@ -475,19 +406,18 @@
 
             const data = state.audioBuffer.getChannelData(0);
             const step = Math.ceil(data.length / width);
-            const amp = height / 2;
+            const amp = height * 0.45;
 
             ctx.fillStyle = '#06b6d4';
             for (let i = 0; i < width; i++) {
-                let min = 1.0, max = -1.0;
-                for (let j = 0; j < step && (i * step + j) < data.length; j++) {
-                    const val = data[i * step + j];
-                    min = Math.min(min, val);
-                    max = Math.max(max, val);
+                let max = 0;
+                const start = i * step;
+                const end = Math.min(start + step, data.length);
+                for (let j = start; j < end; j++) {
+                    max = Math.max(max, Math.abs(data[j]));
                 }
-                const barHeight = Math.max(1, (max - min) * amp * 0.85);
-                const y = (height - barHeight) / 2;
-                ctx.fillRect(i, y, 1.5, barHeight);
+                const h = Math.max(1, max * amp * 2);
+                ctx.fillRect(i, (height - h) / 2, 1, h);
             }
 
             drawSelectionOverlay(width, height);
@@ -498,7 +428,7 @@
             const startX = (state.selection.start / dur) * width;
             const endX = (state.selection.end / dur) * width;
 
-            ctx.fillStyle = 'rgba(0,0,0,0.65)';
+            ctx.fillStyle = 'rgba(0,0,0,0.6)';
             ctx.fillRect(0, 0, startX, height);
             ctx.fillRect(endX, 0, width - endX, height);
 
@@ -516,55 +446,43 @@
             ctx.fillRect(endX - 1, 0, 2, height);
         }
 
-        function getPositionX(e) {
-            return (e.touches && e.touches.length) ? e.touches[0].clientX : e.clientX;
+        // Toque/deslize
+        function getX(e) {
+            return (e.touches?.[0]?.clientX) ?? e.clientX;
         }
 
-        canvasWrapper.addEventListener('pointerdown', (e) => {
+        canvasWrapper.addEventListener('pointerdown', e => {
             if (!state.audioBuffer) return;
-            e.preventDefault();
             state.isTouching = true;
-            state.touchStartX = getPositionX(e);
+            state.touchStartX = getX(e);
         });
 
-        canvasWrapper.addEventListener('pointermove', (e) => {
+        canvasWrapper.addEventListener('pointermove', e => {
             if (!state.isTouching || !state.audioBuffer) return;
             const rect = canvasWrapper.getBoundingClientRect();
-            const currentX = getPositionX(e);
+            const x1 = Math.min(state.touchStartX, getX(e));
+            const x2 = Math.max(state.touchStartX, getX(e));
             const width = rect.width;
-            const duration = state.audioBuffer.duration;
-
-            const x1 = Math.min(state.touchStartX, currentX);
-            const x2 = Math.max(state.touchStartX, currentX);
-            state.selection.start = Math.max(0, (x1 - rect.left) / width * duration);
-            state.selection.end = Math.min(duration, (x2 - rect.left) / width * duration);
+            const dur = state.audioBuffer.duration;
+            state.selection.start = Math.max(0, (x1 - rect.left) / width * dur);
+            state.selection.end = Math.min(dur, (x2 - rect.left) / width * dur);
             drawWaveform();
         });
 
-        canvasWrapper.addEventListener('pointerup', () => {
-            state.isTouching = false;
-        });
+        canvasWrapper.addEventListener('pointerup', () => state.isTouching = false);
+        canvasWrapper.addEventListener('pointercancel', () => state.isTouching = false);
 
-        canvasWrapper.addEventListener('pointercancel', () => {
-            state.isTouching = false;
-        });
-
-        // ✅ FUNÇÕES ATUALIZADAS: TOCA APENAS O TRECHO SELECIONADO
+        // Reprodução do trecho selecionado
         function playAudio() {
-            if (!state.audioBuffer) {
-                showToast('Carregue um áudio primeiro.', 'error');
-                return;
-            }
+            if (!state.audioBuffer) return;
             if (!unlockAudio()) return;
-
             stopAudio();
 
             const start = state.selection.start;
             const end = state.selection.end;
             const duration = end - start;
-
-            if (duration <= 0.01) {
-                showToast('Selecione um trecho válido para tocar.', 'error');
+            if (duration < 0.01) {
+                showToast('Selecione um trecho válido.', 'error');
                 return;
             }
 
@@ -572,22 +490,20 @@
             state.sourceNode.buffer = state.audioBuffer;
             state.sourceNode.connect(state.audioContext.destination);
             state.sourceNode.start(0, start, duration);
-
             state.isPlaying = true;
-            state.playStartTime = state.audioContext.currentTime;
-            state.playStartOffset = start;
+            state.playStart = state.audioContext.currentTime;
+            state.playOffset = start;
 
             state.sourceNode.onended = () => {
                 stopAudio();
                 currentTimeEl.textContent = formatTime(end);
             };
-
             updatePlayback();
         }
 
         function stopAudio() {
             if (state.sourceNode) {
-                try { state.sourceNode.stop(); } catch (e) {}
+                try { state.sourceNode.stop(); } catch(e) {}
                 state.sourceNode = null;
             }
             state.isPlaying = false;
@@ -596,11 +512,9 @@
 
         function updatePlayback() {
             if (!state.isPlaying) return;
-
-            const elapsed = state.audioContext.currentTime - state.playStartTime;
-            const current = state.playStartOffset + elapsed;
+            const elapsed = state.audioContext.currentTime - state.playStart;
+            const current = state.playOffset + elapsed;
             const end = state.selection.end;
-
             if (current >= end) {
                 stopAudio();
                 currentTimeEl.textContent = formatTime(end);
@@ -613,6 +527,7 @@
         playBtn.addEventListener('click', playAudio);
         stopBtn.addEventListener('click', stopAudio);
 
+        // ✅ DOWNLOAD EM MP3 REAL (128/192/320 kbps)
         downloadBtn.addEventListener('click', () => {
             if (!state.audioBuffer) return;
             const start = state.selection.start;
@@ -626,126 +541,87 @@
             loader.classList.add('active');
             setTimeout(() => {
                 try {
-                    const quality = qualitySelect.value;
-                    let sampleRate, channels;
-                    switch (quality) {
-                        case 'low':
-                            sampleRate = 16000;
-                            channels = 1;
-                            break;
-                        case 'medium':
-                            sampleRate = 22050;
-                            channels = 2;
-                            break;
-                        case 'high':
-                        default:
-                            sampleRate = 44100;
-                            channels = 2;
-                    }
-
-                    const originalSR = state.audioBuffer.sampleRate;
-                    const frameCount = Math.floor(duration * sampleRate);
-                    const newBuffer = state.audioContext.createBuffer(channels, frameCount, sampleRate);
-                    const startOffset = Math.floor(start * originalSR);
-                    const ratio = originalSR / sampleRate;
-
-                    for (let c = 0; c < channels; c++) {
-                        const src = state.audioBuffer.getChannelData(Math.min(c, state.audioBuffer.numberOfChannels - 1));
-                        const dst = newBuffer.getChannelData(c);
-                        for (let i = 0; i < frameCount; i++) {
-                            const srcIndex = startOffset + Math.floor(i * ratio);
-                            dst[i] = srcIndex < src.length ? src[srcIndex] : 0;
-                        }
-                    }
-
-                    const wavBlob = bufferToWave(newBuffer, frameCount);
-                    const url = URL.createObjectURL(wavBlob);
+                    const kbps = parseInt(qualitySelect.value);
+                    const mp3Blob = encodeMP3(state.audioBuffer, start, end, kbps);
+                    const url = URL.createObjectURL(mp3Blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `${state.fileName}_cortado.wav`;
+                    a.download = `${state.fileName}_cortado_${kbps}kbps.mp3`;
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
                     URL.revokeObjectURL(url);
-                    showToast('Download iniciado!', 'success');
+                    showToast(`MP3 ${kbps} kbps baixado!`, 'success');
                 } catch (e) {
                     console.error(e);
-                    showToast('Erro ao processar.', 'error');
+                    showToast('Erro ao criar MP3.', 'error');
                 } finally {
                     loader.classList.remove('active');
                 }
-            }, 100);
+            }, 50);
         });
 
-        function bufferToWave(buffer, len) {
-            const numChannels = buffer.numberOfChannels;
+        // ✅ Função para codificar MP3 com lamejs
+        function encodeMP3(buffer, start, end, kbps) {
+            const channels = buffer.numberOfChannels;
             const sampleRate = buffer.sampleRate;
-            const bytesPerSample = 2;
-            const blockAlign = numChannels * bytesPerSample;
-            const byteRate = sampleRate * blockAlign;
-            const dataSize = len * blockAlign;
-            const totalLength = 44 + dataSize;
+            const frameCount = Math.floor((end - start) * sampleRate);
+            const startOffset = Math.floor(start * sampleRate);
 
-            const arrayBuffer = new ArrayBuffer(totalLength);
-            const view = new DataView(arrayBuffer);
+            // Criar buffers de entrada (Float32 -> Int16)
+            const left = new Int16Array(frameCount);
+            const right = channels > 1 ? new Int16Array(frameCount) : null;
 
-            const writeString = (offset, str) => {
-                for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
-            };
+            const leftSrc = buffer.getChannelData(0);
+            const rightSrc = channels > 1 ? buffer.getChannelData(1) : null;
 
-            const writeUint32 = (offset, value) => view.setUint32(offset, value, true);
-            const writeUint16 = (offset, value) => view.setUint16(offset, value, true);
-
-            writeString(0, 'RIFF');
-            writeUint32(4, totalLength - 8);
-            writeString(8, 'WAVE');
-            writeString(12, 'fmt ');
-            writeUint32(16, 16);
-            writeUint16(20, 1);
-            writeUint16(22, numChannels);
-            writeUint32(24, sampleRate);
-            writeUint32(28, byteRate);
-            writeUint16(32, blockAlign);
-            writeUint16(34, 8 * bytesPerSample);
-            writeString(36, 'data');
-            writeUint32(40, dataSize);
-
-            const channels = [];
-            for (let i = 0; i < numChannels; i++) channels.push(buffer.getChannelData(i));
-
-            let offset = 44;
-            for (let i = 0; i < len; i++) {
-                for (let c = 0; c < numChannels; c++) {
-                    const sample = Math.max(-1, Math.min(1, channels[c][i]));
-                    const int16 = sample < 0 ? sample * 32768 : sample * 32767;
-                    view.setInt16(offset, int16, true);
-                    offset += 2;
+            for (let i = 0; i < frameCount; i++) {
+                const srcIndex = startOffset + i;
+                left[i] = Math.max(-32768, Math.min(32767, leftSrc[srcIndex] * 32767));
+                if (right) {
+                    right[i] = Math.max(-32768, Math.min(32767, rightSrc[srcIndex] * 32767));
                 }
             }
 
-            return new Blob([arrayBuffer], { type: 'audio/wav' });
+            // Configurar encoder
+            const mp3encoder = new lamejs.Mp3Encoder(channels, sampleRate, kbps);
+            const mp3Data = [];
+
+            const samplesPerFrame = 1152;
+            for (let i = 0; i < frameCount; i += samplesPerFrame) {
+                const leftChunk = left.subarray(i, i + samplesPerFrame);
+                const rightChunk = right ? right.subarray(i, i + samplesPerFrame) : null;
+                const mp3buf = right ?
+                    mp3encoder.encodeBuffer(leftChunk, rightChunk) :
+                    mp3encoder.encodeBuffer(leftChunk);
+                if (mp3buf.length > 0) mp3Data.push(mp3buf);
+            }
+
+            const d = mp3encoder.flush();
+            if (d.length > 0) mp3Data.push(d);
+
+            return new Blob(mp3Data, { type: 'audio/mpeg' });
         }
 
-        function formatTime(seconds) {
-            const m = Math.floor(seconds / 60);
-            const s = Math.floor(seconds % 60);
-            const ms = Math.floor((seconds % 1) * 100);
-            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
+        // Utils
+        function formatTime(s) {
+            const m = Math.floor(s / 60);
+            const sec = Math.floor(s % 60);
+            const ms = Math.floor((s % 1) * 100);
+            return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
         }
 
         function showToast(message, type = 'success') {
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
-            const icon = type === 'success' ?
-                '<svg width="18" height="18" fill="#10b981" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/></svg>' :
-                '<svg width="18" height="18" fill="#ef4444" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8 4a.905.905 0 0 0-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 4zm.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/></svg>';
-            toast.innerHTML = `${icon} <span>${message}</span>`;
+            const icon = type === 'success' ? '✅' : '⚠️';
+            toast.innerHTML = `<span>${icon} ${message}</span>`;
             document.getElementById('toastContainer').appendChild(toast);
             setTimeout(() => {
                 toast.style.opacity = '0';
-                toast.style.transform = 'translateX(40px)';
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
+                toast.style.transform = 'translateX(30px)';
+                setTimeout(() => toast.remove(), 250);
+            }, 2500);
         }
 
         window.addEventListener('resize', () => {
