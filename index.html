@@ -35,7 +35,7 @@
             background-image: 
                 radial-gradient(circle at 15% 50%, rgba(6, 182, 212, 0.05), transparent 25%),
                 radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.05), transparent 25%);
-            touch-action: manipulation; /* Melhora resposta ao toque */
+            touch-action: manipulation;
         }
 
         /* --- Header --- */
@@ -79,6 +79,25 @@
             gap: 1.5rem;
         }
 
+        /* --- Tela de Inicialização (iOS) --- */
+        #initScreen {
+            text-align: center;
+            padding: 2rem;
+            max-width: 500px;
+        }
+
+        #initScreen h2 {
+            margin-bottom: 1rem;
+            color: var(--text-main);
+        }
+
+        #initScreen p {
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
         /* --- Upload Area --- */
         .dropzone {
             border: 2px dashed var(--border);
@@ -90,7 +109,7 @@
             cursor: pointer;
             position: relative;
             overflow: hidden;
-            user-select: none; /* evita seleção acidental no toque */
+            user-select: none;
         }
 
         .dropzone:hover, .dropzone.dragover {
@@ -127,7 +146,7 @@
             border: 1px solid var(--border);
             border-radius: 12px;
             padding: 1.5rem;
-            display: none; /* Hidden initially */
+            display: none;
             flex-direction: column;
             gap: 1rem;
             box-shadow: 0 20px 50px -10px rgba(0,0,0,0.5);
@@ -156,7 +175,6 @@
             height: 100%;
         }
 
-        /* Overlay for selection logic handles */
         .time-display {
             display: flex;
             justify-content: space-between;
@@ -301,7 +319,7 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* Responsive small screens */
+        /* Responsive */
         @media (max-width: 600px) {
             .controls {
                 grid-template-columns: 1fr;
@@ -310,11 +328,8 @@
             .btn-group, .inputs-group {
                 justify-content: center;
             }
-            .dropzone {
+            #initScreen, .dropzone {
                 padding: 1.5rem;
-            }
-            .dropzone p {
-                font-size: 0.8rem;
             }
         }
     </style>
@@ -323,13 +338,25 @@
 
     <header>
         <div class="logo">SonicCut Pro</div>
-        <div style="font-size: 0.8rem; color: var(--text-muted);">v1.0.1 (iOS Ready)</div>
+        <div style="font-size: 0.8rem; color: var(--text-muted);">v1.1.0 (iOS Ready)</div>
     </header>
 
     <main>
         <div class="container">
-            <!-- Upload Section -->
-            <div class="dropzone" id="dropzone">
+            <!-- Tela de inicialização (obrigatória no iOS) -->
+            <div id="initScreen">
+                <h2>✨ Bem-vindo ao SonicCut Pro</h2>
+                <p>
+                    Para usar no iPhone ou iPad, clique no botão abaixo para ativar o editor.<br>
+                    Isso é necessário devido às restrições de segurança do iOS.
+                </p>
+                <button class="btn btn-primary" id="initBtn" style="padding:0.8rem 2rem; font-size:1rem;">
+                    ✅ Iniciar Editor
+                </button>
+            </div>
+
+            <!-- Upload Section (inicialmente escondido) -->
+            <div class="dropzone" id="dropzone" style="display:none;">
                 <input type="file" 
                        id="fileInput" 
                        accept="audio/*,.mp3,.wav,.ogg,.m4a,.aac"
@@ -338,8 +365,7 @@
                     <h3>Selecione um arquivo de áudio</h3>
                     <p>
                         Arraste ou clique para escolher.<br>
-                        <strong>iOS:</strong> Use arquivos do iCloud ou App Arquivos.<br>
-                        (Músicas do Apple Music não são acessíveis)
+                        <strong>iOS:</strong> Use arquivos do iCloud ou App Arquivos.
                     </p>
                 </div>
             </div>
@@ -394,10 +420,6 @@
     <div class="toast-container" id="toastContainer"></div>
 
     <script>
-        /**
-         * SonicCut Pro — com suporte a iOS
-         */
-
         const state = {
             audioContext: null,
             audioBuffer: null,
@@ -409,7 +431,11 @@
             fileName: 'audio_cortado'
         };
 
+        let isInitialized = false;
+
         // Elementos DOM
+        const initScreen = document.getElementById('initScreen');
+        const initBtn = document.getElementById('initBtn');
         const dropzone = document.getElementById('dropzone');
         const fileInput = document.getElementById('fileInput');
         const editor = document.getElementById('editor');
@@ -425,27 +451,47 @@
         const currentTimeEl = document.getElementById('currentTime');
         const totalTimeEl = document.getElementById('totalTime');
 
-        // Inicializar contexto de áudio
+        // Inicialização obrigatória (iOS)
+        initBtn.addEventListener('click', () => {
+            isInitialized = true;
+            initScreen.style.display = 'none';
+            dropzone.style.display = 'flex';
+            // Criar contexto em estado suspenso (seguro)
+            if (!state.audioContext) {
+                state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            showToast('Editor ativado! Selecione um arquivo de áudio.', 'success');
+        });
+
         function initAudioContext() {
             if (!state.audioContext) {
                 state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
             }
         }
 
-        // Lidar com arquivo
         function handleFile(file) {
-            if (!file.type.startsWith('audio/') && !['.mp3','.wav','.ogg','.m4a','.aac'].some(ext => file.name.toLowerCase().endsWith(ext))) {
-                showToast('Por favor, envie um arquivo de áudio válido (MP3, WAV, OGG, M4A).', 'error');
+            if (!isInitialized) {
+                showToast('Clique em "Iniciar Editor" primeiro.', 'error');
+                fileInput.value = ''; // limpar seleção
                 return;
             }
 
-            // Corrigir nome no iOS (evita "blob")
+            const validAudio = file.type.startsWith('audio/') || 
+                ['.mp3','.wav','.ogg','.m4a','.aac'].some(ext => 
+                    file.name.toLowerCase().endsWith(ext)
+                );
+
+            if (!validAudio) {
+                showToast('Formato não suportado. Use MP3, WAV, OGG ou M4A.', 'error');
+                fileInput.value = '';
+                return;
+            }
+
             const baseName = file.name && file.name !== 'blob' 
                 ? file.name.replace(/\.[^/.]+$/, "") 
                 : 'audio_cortado';
             state.fileName = baseName;
 
-            initAudioContext();
             loader.classList.add('active');
 
             const reader = new FileReader();
@@ -465,17 +511,17 @@
                     
                     drawWaveform();
                     loader.classList.remove('active');
-                    showToast('Áudio carregado com sucesso!', 'success');
                 }, (err) => {
                     console.error(err);
                     loader.classList.remove('active');
-                    showToast('Erro ao decodificar áudio.', 'error');
+                    showToast('Erro ao carregar áudio. Tente outro arquivo.', 'error');
+                    fileInput.value = '';
                 });
             };
             reader.readAsArrayBuffer(file);
         }
 
-        // Eventos de arrastar
+        // Eventos de upload
         dropzone.addEventListener('dragover', (e) => {
             e.preventDefault();
             dropzone.classList.add('dragover');
@@ -493,223 +539,59 @@
             if (e.target.files.length) handleFile(e.target.files[0]);
         });
 
-        // ⭐️ Garantir clique no dropzone (iOS Safari)
         dropzone.addEventListener('click', () => {
-            fileInput.click();
+            if (isInitialized) fileInput.click();
         });
 
-        // --- Canvas e interação ---
-        function drawWaveform() {
-            if (!state.audioBuffer) return;
+        // --- Canvas e interação (mesmo código) ---
+        function drawWaveform() { /* ... mesmo que antes ... */ }
+        function drawSelectionOverlay(width, height) { /* ... */ }
+        function timeFromX(x) { /* ... */ }
+        function updateInputsFromState() { /* ... */ }
 
-            const width = canvasWrapper.clientWidth;
-            const height = canvasWrapper.clientHeight;
-            const dpr = window.devicePixelRatio || 1;
-            canvas.width = width * dpr;
-            canvas.height = height * dpr;
-            ctx.scale(dpr, dpr);
-            ctx.clearRect(0, 0, width, height);
-
-            const data = state.audioBuffer.getChannelData(0);
-            const step = Math.ceil(data.length / width);
-            const amp = height / 2;
-
-            ctx.fillStyle = '#06b6d4';
-            for (let i = 0; i < width; i++) {
-                let min = 1.0;
-                let max = -1.0;
-                for (let j = 0; j < step; j++) {
-                    const datum = data[(i * step) + j];
-                    if (datum < min) min = datum;
-                    if (datum > max) max = datum;
-                }
-                const barHeight = Math.max(1, (max - min) * amp * 0.9);
-                const x = i;
-                const y = (height - barHeight) / 2;
-                ctx.fillRect(x, y, 1.5, barHeight);
-            }
-
-            drawSelectionOverlay(width, height);
-        }
-
-        function drawSelectionOverlay(width, height) {
-            const duration = state.audioBuffer.duration;
-            const startX = (state.selection.start / duration) * width;
-            const endX = (state.selection.end / duration) * width;
-            const selectionWidth = endX - startX;
-
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-            ctx.fillRect(0, 0, startX, height);
-            ctx.fillRect(endX, 0, width - endX, height);
-
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(startX, 0);
-            ctx.lineTo(startX, height);
-            ctx.moveTo(endX, 0);
-            ctx.lineTo(endX, height);
-            ctx.stroke();
-
-            ctx.fillStyle = '#8b5cf6';
-            ctx.fillRect(startX - 2, 0, 4, height);
-            ctx.fillRect(endX - 2, 0, 4, height);
-
-            ctx.fillStyle = 'rgba(6, 182, 212, 0.1)';
-            ctx.fillRect(startX, 0, selectionWidth, height);
-        }
-
-        function timeFromX(x) {
-            const width = canvasWrapper.clientWidth;
-            return (x / width) * state.audioBuffer.duration;
-        }
-
-        function updateInputsFromState() {
-            startInput.value = formatTime(state.selection.start);
-            endInput.value = formatTime(state.selection.end);
-        }
-
-        canvas.addEventListener('mousedown', (e) => {
-            if (!state.audioBuffer) return;
-            const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const width = rect.width;
-            const duration = state.audioBuffer.duration;
-            const startTimeX = (state.selection.start / duration) * width;
-            const endTimeX = (state.selection.end / duration) * width;
-
-            if (Math.abs(x - startTimeX) < 10) {
-                state.selection.dragging = 'start';
-            } else if (Math.abs(x - endTimeX) < 10) {
-                state.selection.dragging = 'end';
-            } else if (x > startTimeX && x < endTimeX) {
-                state.selection.dragging = 'region';
-                state.selection.dragOffsetX = x - startTimeX;
-            } else {
-                if (x < startTimeX) {
-                    state.selection.dragging = 'start';
-                    state.selection.start = Math.max(0, timeFromX(x));
-                } else {
-                    state.selection.dragging = 'end';
-                    state.selection.end = Math.min(duration, timeFromX(x));
-                }
-            }
-            drawWaveform();
-            updateInputsFromState();
-        });
-
-        window.addEventListener('mousemove', (e) => {
-            if (!state.selection.dragging) return;
-            const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const width = rect.width;
-            const duration = state.audioBuffer.duration;
-            let time = timeFromX(x);
-            time = Math.max(0, Math.min(duration, time));
-
-            if (state.selection.dragging === 'start') {
-                if (time < state.selection.end - 0.01) state.selection.start = time;
-            } else if (state.selection.dragging === 'end') {
-                if (time > state.selection.start + 0.01) state.selection.end = time;
-            } else if (state.selection.dragging === 'region') {
-                const regionWidth = state.selection.end - state.selection.start;
-                let newStart = time - (state.selection.dragOffsetX / width) * duration;
-                if (newStart < 0) newStart = 0;
-                if (newStart + regionWidth > duration) newStart = duration - regionWidth;
-                state.selection.start = newStart;
-                state.selection.end = newStart + regionWidth;
-            }
-
-            drawWaveform();
-            updateInputsFromState();
-        });
-
-        window.addEventListener('mouseup', () => {
-            state.selection.dragging = null;
-        });
+        canvas.addEventListener('mousedown', (e) => { /* ... */ });
+        window.addEventListener('mousemove', (e) => { /* ... */ });
+        window.addEventListener('mouseup', () => { /* ... */ });
 
         // --- Áudio ---
-        function playAudio() {
-            if (state.isPlaying) stopAudio();
-            const duration = state.selection.end - state.selection.start;
-            const offset = state.selection.start;
-
-            state.sourceNode = state.audioContext.createBufferSource();
-            state.sourceNode.buffer = state.audioBuffer;
-            state.sourceNode.connect(state.audioContext.destination);
-            state.sourceNode.start(0, offset, duration);
-            state.startTime = state.audioContext.currentTime - offset;
-            state.isPlaying = true;
-            state.sourceNode.onended = () => {
-                if (state.isPlaying) {
-                    state.isPlaying = false;
-                    currentTimeEl.textContent = formatTime(state.selection.end);
-                }
-            };
-            requestAnimationFrame(updatePlaybackUI);
-        }
-
-        function stopAudio() {
-            if (state.sourceNode) {
-                try { state.sourceNode.stop(); } catch(e) {}
-                state.sourceNode = null;
-            }
-            state.isPlaying = false;
-            currentTimeEl.textContent = formatTime(state.selection.start);
-        }
-
-        function updatePlaybackUI() {
-            if (!state.isPlaying) return;
-            const current = state.audioContext.currentTime - state.startTime;
-            if (current >= state.selection.end) {
-                currentTimeEl.textContent = formatTime(state.selection.end);
-                return;
-            }
-            currentTimeEl.textContent = formatTime(current);
-            requestAnimationFrame(updatePlaybackUI);
-        }
+        function playAudio() { /* ... mesmo ... */ }
+        function stopAudio() { /* ... */ }
+        function updatePlaybackUI() { /* ... */ }
 
         playBtn.addEventListener('click', () => {
+            if (!isInitialized || !state.audioBuffer) {
+                showToast('Carregue um áudio primeiro.', 'error');
+                return;
+            }
             initAudioContext();
-            if(state.audioContext.state === 'suspended') state.audioContext.resume();
-            playAudio();
+            if (state.audioContext.state === 'suspended') {
+                state.audioContext.resume().then(() => {
+                    playAudio();
+                });
+            } else {
+                playAudio();
+            }
         });
 
         stopBtn.addEventListener('click', stopAudio);
 
-        function parseTime(str) {
-            const parts = str.split(':');
-            if (parts.length === 2) {
-                const mins = parseFloat(parts[0]);
-                const secs = parseFloat(parts[1]);
-                return (mins * 60) + secs;
-            }
-            return 0;
-        }
-
-        function handleTimeChange() {
-            const s = parseTime(startInput.value);
-            const e = parseTime(endInput.value);
-            const duration = state.audioBuffer.duration;
-
-            if (s >= 0 && s < e && e <= duration) {
-                state.selection.start = s;
-                state.selection.end = e;
-                drawWaveform();
-            }
-        }
+        function parseTime(str) { /* ... */ }
+        function handleTimeChange() { /* ... */ }
 
         startInput.addEventListener('change', handleTimeChange);
         endInput.addEventListener('change', handleTimeChange);
 
         // --- Exportação ---
         downloadBtn.addEventListener('click', () => {
-            if (!state.audioBuffer) return;
+            if (!isInitialized || !state.audioBuffer) {
+                showToast('Carregue um áudio primeiro.', 'error');
+                return;
+            }
             const start = state.selection.start;
             const end = state.selection.end;
             const duration = end - start;
             if (duration <= 0) {
-                showToast('Seleção inválida.', 'error');
+                showToast('Selecione uma faixa válida.', 'error');
                 return;
             }
 
@@ -732,7 +614,9 @@
                     const link = document.createElement('a');
                     link.href = url;
                     link.download = `${state.fileName}_cortado.wav`;
+                    document.body.appendChild(link);
                     link.click();
+                    document.body.removeChild(link);
                     URL.revokeObjectURL(url);
                     showToast('Download iniciado!', 'success');
                 } catch (e) {
@@ -743,6 +627,14 @@
                 }
             }, 100);
         });
+
+        // Funções utilitárias (formatTime, bufferToWave, showToast) - mesmas
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = Math.floor(seconds % 60);
+            const ms = Math.floor((seconds % 1) * 100);
+            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
+        }
 
         function bufferToWave(abuffer, len) {
             let numOfChan = abuffer.numberOfChannels,
@@ -782,22 +674,8 @@
 
             return new Blob([buffer], {type: "audio/wav"});
 
-            function setUint16(data) {
-                view.setUint16(pos, data, true);
-                pos += 2;
-            }
-
-            function setUint32(data) {
-                view.setUint32(pos, data, true);
-                pos += 4;
-            }
-        }
-
-        function formatTime(seconds) {
-            const m = Math.floor(seconds / 60);
-            const s = Math.floor(seconds % 60);
-            const ms = Math.floor((seconds % 1) * 100);
-            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
+            function setUint16(data) { view.setUint16(pos, data, true); pos += 2; }
+            function setUint32(data) { view.setUint32(pos, data, true); pos += 4; }
         }
 
         function showToast(message, type = 'success') {
@@ -819,6 +697,185 @@
         window.addEventListener('resize', () => {
             if (state.audioBuffer) drawWaveform();
         });
+
+        // Implementações faltantes (copiadas do original)
+        function drawWaveform() {
+            if (!state.audioBuffer) return;
+            const width = canvasWrapper.clientWidth;
+            const height = canvasWrapper.clientHeight;
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = width * dpr;
+            canvas.height = height * dpr;
+            ctx.scale(dpr, dpr);
+            ctx.clearRect(0, 0, width, height);
+            const data = state.audioBuffer.getChannelData(0);
+            const step = Math.ceil(data.length / width);
+            const amp = height / 2;
+            ctx.fillStyle = '#06b6d4';
+            for (let i = 0; i < width; i++) {
+                let min = 1.0;
+                let max = -1.0;
+                for (let j = 0; j < step; j++) {
+                    const datum = data[(i * step) + j];
+                    if (datum < min) min = datum;
+                    if (datum > max) max = datum;
+                }
+                const barHeight = Math.max(1, (max - min) * amp * 0.9);
+                const x = i;
+                const y = (height - barHeight) / 2;
+                ctx.fillRect(x, y, 1.5, barHeight);
+            }
+            drawSelectionOverlay(width, height);
+        }
+
+        function drawSelectionOverlay(width, height) {
+            const duration = state.audioBuffer.duration;
+            const startX = (state.selection.start / duration) * width;
+            const endX = (state.selection.end / duration) * width;
+            const selectionWidth = endX - startX;
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+            ctx.fillRect(0, 0, startX, height);
+            ctx.fillRect(endX, 0, width - endX, height);
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(startX, 0);
+            ctx.lineTo(startX, height);
+            ctx.moveTo(endX, 0);
+            ctx.lineTo(endX, height);
+            ctx.stroke();
+            ctx.fillStyle = '#8b5cf6';
+            ctx.fillRect(startX - 2, 0, 4, height);
+            ctx.fillRect(endX - 2, 0, 4, height);
+            ctx.fillStyle = 'rgba(6, 182, 212, 0.1)';
+            ctx.fillRect(startX, 0, selectionWidth, height);
+        }
+
+        function timeFromX(x) {
+            const width = canvasWrapper.clientWidth;
+            return (x / width) * state.audioBuffer.duration;
+        }
+
+        function updateInputsFromState() {
+            startInput.value = formatTime(state.selection.start);
+            endInput.value = formatTime(state.selection.end);
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            if (!state.audioBuffer) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const width = rect.width;
+            const duration = state.audioBuffer.duration;
+            const startTimeX = (state.selection.start / duration) * width;
+            const endTimeX = (state.selection.end / duration) * width;
+            if (Math.abs(x - startTimeX) < 10) {
+                state.selection.dragging = 'start';
+            } else if (Math.abs(x - endTimeX) < 10) {
+                state.selection.dragging = 'end';
+            } else if (x > startTimeX && x < endTimeX) {
+                state.selection.dragging = 'region';
+                state.selection.dragOffsetX = x - startTimeX;
+            } else {
+                if (x < startTimeX) {
+                    state.selection.dragging = 'start';
+                    state.selection.start = Math.max(0, timeFromX(x));
+                } else {
+                    state.selection.dragging = 'end';
+                    state.selection.end = Math.min(duration, timeFromX(x));
+                }
+            }
+            drawWaveform();
+            updateInputsFromState();
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!state.selection.dragging) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const width = rect.width;
+            const duration = state.audioBuffer.duration;
+            let time = timeFromX(x);
+            time = Math.max(0, Math.min(duration, time));
+            if (state.selection.dragging === 'start') {
+                if (time < state.selection.end - 0.01) state.selection.start = time;
+            } else if (state.selection.dragging === 'end') {
+                if (time > state.selection.start + 0.01) state.selection.end = time;
+            } else if (state.selection.dragging === 'region') {
+                const regionWidth = state.selection.end - state.selection.start;
+                let newStart = time - (state.selection.dragOffsetX / width) * duration;
+                if (newStart < 0) newStart = 0;
+                if (newStart + regionWidth > duration) newStart = duration - regionWidth;
+                state.selection.start = newStart;
+                state.selection.end = newStart + regionWidth;
+            }
+            drawWaveform();
+            updateInputsFromState();
+        });
+
+        window.addEventListener('mouseup', () => {
+            state.selection.dragging = null;
+        });
+
+        function playAudio() {
+            if (state.isPlaying) stopAudio();
+            const duration = state.selection.end - state.selection.start;
+            const offset = state.selection.start;
+            state.sourceNode = state.audioContext.createBufferSource();
+            state.sourceNode.buffer = state.audioBuffer;
+            state.sourceNode.connect(state.audioContext.destination);
+            state.sourceNode.start(0, offset, duration);
+            state.startTime = state.audioContext.currentTime - offset;
+            state.isPlaying = true;
+            state.sourceNode.onended = () => {
+                if (state.isPlaying) {
+                    state.isPlaying = false;
+                    currentTimeEl.textContent = formatTime(state.selection.end);
+                }
+            };
+            requestAnimationFrame(updatePlaybackUI);
+        }
+
+        function stopAudio() {
+            if (state.sourceNode) {
+                try { state.sourceNode.stop(); } catch(e) {}
+                state.sourceNode = null;
+            }
+            state.isPlaying = false;
+            currentTimeEl.textContent = formatTime(state.selection.start);
+        }
+
+        function updatePlaybackUI() {
+            if (!state.isPlaying) return;
+            const current = state.audioContext.currentTime - state.startTime;
+            if (current >= state.selection.end) {
+                currentTimeEl.textContent = formatTime(state.selection.end);
+                return;
+            }
+            currentTimeEl.textContent = formatTime(current);
+            requestAnimationFrame(updatePlaybackUI);
+        }
+
+        function parseTime(str) {
+            const parts = str.split(':');
+            if (parts.length === 2) {
+                const mins = parseFloat(parts[0]);
+                const secs = parseFloat(parts[1]);
+                return (mins * 60) + secs;
+            }
+            return 0;
+        }
+
+        function handleTimeChange() {
+            const s = parseTime(startInput.value);
+            const e = parseTime(endInput.value);
+            const duration = state.audioBuffer.duration;
+            if (s >= 0 && s < e && e <= duration) {
+                state.selection.start = s;
+                state.selection.end = e;
+                drawWaveform();
+            }
+        }
     </script>
 </body>
 </html>
