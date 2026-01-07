@@ -9,7 +9,7 @@
             --bg-dark: #09090b;
             --bg-panel: #18181b;
             --primary: #06b6d4;
-            --primary-glow: rgba(6, 182, 212, 0.4);
+            --primary-glow: rgba(6, 182, 212, 0.3);
             --secondary: #8b5cf6;
             --text-main: #f4f4f5;
             --text-muted: #a1a1aa;
@@ -22,7 +22,7 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
         }
 
         body {
@@ -39,18 +39,18 @@
         }
 
         header {
-            padding: 0.9rem 1.2rem;
+            padding: 0.8rem 1rem;
             border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: rgba(9, 9, 11, 0.8);
-            backdrop-filter: blur(8px);
+            background: rgba(9, 9, 11, 0.9);
+            backdrop-filter: blur(6px);
             z-index: 10;
         }
 
         .logo {
-            font-size: 1.3rem;
+            font-size: 1.25rem;
             font-weight: 700;
             background: linear-gradient(135deg, var(--primary), var(--secondary));
             -webkit-background-clip: text;
@@ -64,6 +64,7 @@
             align-items: center;
             padding: 0.8rem;
             overflow-y: auto;
+            padding-bottom: 1.2rem;
         }
 
         .container {
@@ -77,20 +78,36 @@
         .dropzone {
             border: 2px dashed var(--border);
             border-radius: 10px;
-            padding: 1.8rem 1.2rem;
+            padding: 1.6rem 1rem;
             text-align: center;
             background: rgba(255,255,255,0.02);
             cursor: pointer;
             user-select: none;
+            transition: all 0.2s;
         }
 
-        .dropzone h3 { font-size: 1.15rem; margin-bottom: 0.4rem; }
-        .dropzone p { color: var(--text-muted); font-size: 0.82rem; line-height: 1.4; }
+        .dropzone:hover, .dropzone.dragover {
+            border-color: var(--primary);
+            background: rgba(6, 182, 212, 0.05);
+        }
+
+        .dropzone h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.4rem;
+        }
+
+        .dropzone p {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            line-height: 1.4;
+        }
 
         #fileInput {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            opacity: 0.01; cursor: pointer; z-index: 2;
+            opacity: 0.01;
+            cursor: pointer;
+            z-index: 2;
         }
 
         .editor-container {
@@ -101,12 +118,12 @@
             display: none;
             flex-direction: column;
             gap: 0.9rem;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
         }
 
         .canvas-wrapper {
             width: 100%;
-            height: 160px;
+            height: 150px;
             background: #000;
             border-radius: 5px;
             overflow: hidden;
@@ -115,26 +132,80 @@
             touch-action: none;
         }
 
-        canvas { display: block; width: 100%; height: 100%; }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
 
         .time-display {
             display: flex;
             justify-content: space-between;
             font-family: monospace;
-            font-size: 0.83rem;
+            font-size: 0.82rem;
             color: var(--primary);
+            margin-top: 0.3rem;
         }
 
         .controls {
             display: grid;
-            grid-template-columns: 1fr auto;
             gap: 0.9rem;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 0.6rem;
+            justify-content: center;
+        }
+
+        .time-inputs {
+            display: flex;
+            gap: 0.8rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .time-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.2rem;
+        }
+
+        .time-group label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .time-input {
+            background: var(--bg-dark);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 0.4rem 0.5rem;
+            font-family: monospace;
+            font-size: 0.85rem;
+            width: 90px;
+            text-align: center;
+        }
+
+        .time-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .quality-row {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
             align-items: center;
         }
 
-        .btn-group { display: flex; gap: 0.5rem; justify-content: center; }
-        .quality-group { display: flex; flex-direction: column; gap: 0.3rem; }
-        .quality-group label { font-size: 0.72rem; color: var(--text-muted); }
+        .quality-row label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
         .quality-select {
             background: var(--bg-dark);
             color: var(--text-main);
@@ -146,7 +217,7 @@
         }
 
         .btn {
-            padding: 0.55rem 0.9rem;
+            padding: 0.5rem 0.9rem;
             border-radius: 5px;
             border: 1px solid var(--border);
             background: rgba(255,255,255,0.03);
@@ -157,26 +228,35 @@
             align-items: center;
             gap: 0.4rem;
             justify-content: center;
+            min-width: 80px;
         }
 
-        .btn:hover:not(:disabled) { background: rgba(255,255,255,0.08); }
+        .btn:hover:not(:disabled) {
+            background: rgba(255,255,255,0.08);
+        }
+
         .btn-primary {
             background: linear-gradient(135deg, var(--primary), #0891b2);
             border: none;
             color: #000;
             font-weight: 600;
-            box-shadow: 0 0 10px var(--primary-glow);
+            box-shadow: 0 0 8px var(--primary-glow);
         }
+
         .btn-primary:hover:not(:disabled) {
-            box-shadow: 0 0 18px var(--primary-glow);
+            box-shadow: 0 0 15px var(--primary-glow);
             background: linear-gradient(135deg, #22d3ee, #06b6d4);
         }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
 
         .toast-container {
             position: fixed;
-            bottom: 1.2rem;
-            right: 1.2rem;
+            bottom: 1rem;
+            right: 1rem;
             z-index: 100;
         }
 
@@ -184,15 +264,15 @@
             background: var(--bg-panel);
             border: 1px solid var(--border);
             border-left: 3px solid var(--primary);
-            padding: 0.8rem 1.2rem;
+            padding: 0.75rem 1.1rem;
             border-radius: 4px;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.4);
             display: flex;
             align-items: center;
             gap: 0.6rem;
             animation: slideIn 0.25s ease;
-            max-width: 300px;
-            font-size: 0.88rem;
+            max-width: 280px;
+            font-size: 0.85rem;
         }
 
         .toast.success { border-color: var(--success); }
@@ -206,7 +286,7 @@
         .loader-overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.75);
+            background: rgba(0,0,0,0.8);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -218,18 +298,29 @@
         .loader-overlay.active { opacity: 1; pointer-events: all; }
 
         .spinner {
-            width: 32px; height: 32px;
-            border: 2.5px solid rgba(255,255,255,0.15);
+            width: 28px;
+            height: 28px;
+            border: 2px solid rgba(255,255,255,0.2);
             border-top-color: var(--primary);
             border-radius: 50%;
             animation: spin 0.9s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        @media (max-width: 620px) {
-            .controls { grid-template-columns: 1fr; gap: 1rem; }
-            .quality-select { width: 100%; }
-            .btn { padding: 0.5rem 0.8rem; font-size: 0.85rem; }
+        @media (min-width: 621px) {
+            .controls {
+                display: grid;
+                grid-template-columns: 1fr auto;
+                align-items: end;
+            }
+            .quality-row {
+                flex-direction: row;
+                align-items: center;
+                gap: 0.6rem;
+            }
+            .quality-row label {
+                white-space: nowrap;
+            }
         }
     </style>
 </head>
@@ -237,7 +328,7 @@
 
     <header>
         <div class="logo">SonicCut Pro</div>
-        <div style="font-size:0.72rem; color:var(--text-muted);">MP3</div>
+        <div style="font-size:0.7rem; color:var(--text-muted);">MP3</div>
     </header>
 
     <main>
@@ -262,12 +353,23 @@
                 </div>
 
                 <div class="controls">
-                    <div class="btn-group">
+                    <div class="btn-row">
                         <button class="btn" id="playBtn">▶ Tocar</button>
                         <button class="btn" id="stopBtn">⏹ Parar</button>
                     </div>
 
-                    <div class="quality-group">
+                    <div class="time-inputs">
+                        <div class="time-group">
+                            <label for="startInput">INÍCIO</label>
+                            <input type="text" class="time-input" id="startInput" value="00:00.00">
+                        </div>
+                        <div class="time-group">
+                            <label for="endInput">FIM</label>
+                            <input type="text" class="time-input" id="endInput" value="00:00.00">
+                        </div>
+                    </div>
+
+                    <div class="quality-row">
                         <label for="qualitySelect">Qualidade MP3</label>
                         <select class="quality-select" id="qualitySelect">
                             <option value="128">128 kbps</option>
@@ -276,7 +378,7 @@
                         </select>
                     </div>
 
-                    <button class="btn btn-primary" id="downloadBtn" style="grid-column: span 2;">
+                    <button class="btn btn-primary" id="downloadBtn">
                         ✂️ Cortar & Baixar MP3
                     </button>
                 </div>
@@ -286,7 +388,7 @@
 
     <div class="toast-container" id="toastContainer"></div>
 
-    <!-- Incluir lamejs (MP3 encoder) -->
+    <!-- MP3 Encoder (leve e rápido) -->
     <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.0/lame.all.min.js"></script>
     
     <script>
@@ -316,18 +418,33 @@
         const qualitySelect = document.getElementById('qualitySelect');
         const currentTimeEl = document.getElementById('currentTime');
         const totalTimeEl = document.getElementById('totalTime');
+        const startInput = document.getElementById('startInput');
+        const endInput = document.getElementById('endInput');
+
+        // 🔊 Corrigir chiado: usar sampleRate nativo e evitar overdrive
+        function createAudioContext() {
+            if (!state.audioContext) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                state.audioContext = new AudioContext({
+                    sampleRate: 44100, // Padrão CD, evita resampling
+                    latencyHint: 'interactive'
+                });
+            }
+        }
 
         // Ativar áudio no iOS
         function unlockAudio() {
             if (state.audioUnlocked) return true;
             try {
-                if (!state.audioContext) {
-                    state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                }
+                createAudioContext();
+                // Tocar áudio silencioso para destravar
                 const buffer = state.audioContext.createBuffer(1, 1, 22050);
                 const source = state.audioContext.createBufferSource();
                 source.buffer = buffer;
-                source.connect(state.audioContext.destination);
+                const gain = state.audioContext.createGain();
+                gain.gain.value = 0; // Silencioso
+                source.connect(gain);
+                gain.connect(state.audioContext.destination);
                 source.start(0);
                 state.audioUnlocked = true;
                 return true;
@@ -361,8 +478,7 @@
                         state.audioBuffer = buffer;
                         state.selection.start = 0;
                         state.selection.end = buffer.duration;
-                        totalTimeEl.textContent = formatTime(buffer.duration);
-                        currentTimeEl.textContent = formatTime(0);
+                        updateUIFromSelection();
                         editor.style.display = 'flex';
                         dropzone.style.display = 'none';
                         drawWaveform();
@@ -375,6 +491,33 @@
                     });
             };
             reader.readAsArrayBuffer(file);
+        }
+
+        // Atualizar UI com base na seleção
+        function updateUIFromSelection() {
+            if (!state.audioBuffer) return;
+            totalTimeEl.textContent = formatTime(state.audioBuffer.duration);
+            startInput.value = formatTimeInput(state.selection.start);
+            endInput.value = formatTimeInput(state.selection.end);
+        }
+
+        // Formatar para input (MM:SS)
+        function formatTimeInput(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = Math.floor(seconds % 60);
+            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        // Parser flexível: aceita 90, 1:30, 1.5
+        function parseTimeInput(str) {
+            str = str.trim();
+            if (str.includes(':')) {
+                const [min, sec] = str.split(':').map(Number);
+                return (min || 0) * 60 + (sec || 0);
+            } else {
+                const num = parseFloat(str);
+                return isNaN(num) ? 0 : num;
+            }
         }
 
         // Dois toques para iOS
@@ -446,6 +589,19 @@
             ctx.fillRect(endX - 1, 0, 2, height);
         }
 
+        // Atualizar seleção por input
+        function updateSelectionFromInputs() {
+            if (!state.audioBuffer) return;
+            const start = Math.max(0, Math.min(parseTimeInput(startInput.value), state.audioBuffer.duration));
+            const end = Math.max(start + 0.01, Math.min(parseTimeInput(endInput.value), state.audioBuffer.duration));
+            state.selection.start = start;
+            state.selection.end = end;
+            drawWaveform();
+        }
+
+        startInput.addEventListener('change', updateSelectionFromInputs);
+        endInput.addEventListener('change', updateSelectionFromInputs);
+
         // Toque/deslize
         function getX(e) {
             return (e.touches?.[0]?.clientX) ?? e.clientX;
@@ -466,13 +622,14 @@
             const dur = state.audioBuffer.duration;
             state.selection.start = Math.max(0, (x1 - rect.left) / width * dur);
             state.selection.end = Math.min(dur, (x2 - rect.left) / width * dur);
+            updateUIFromSelection();
             drawWaveform();
         });
 
         canvasWrapper.addEventListener('pointerup', () => state.isTouching = false);
         canvasWrapper.addEventListener('pointercancel', () => state.isTouching = false);
 
-        // Reprodução do trecho selecionado
+        // Reprodução SEM CHIADO
         function playAudio() {
             if (!state.audioBuffer) return;
             if (!unlockAudio()) return;
@@ -484,6 +641,11 @@
             if (duration < 0.01) {
                 showToast('Selecione um trecho válido.', 'error');
                 return;
+            }
+
+            // Garantir que o contexto esteja ativo
+            if (state.audioContext.state === 'suspended') {
+                state.audioContext.resume();
             }
 
             state.sourceNode = state.audioContext.createBufferSource();
@@ -527,7 +689,7 @@
         playBtn.addEventListener('click', playAudio);
         stopBtn.addEventListener('click', stopAudio);
 
-        // ✅ DOWNLOAD EM MP3 REAL (128/192/320 kbps)
+        // ✅ MP3 com qualidade real
         downloadBtn.addEventListener('click', () => {
             if (!state.audioBuffer) return;
             const start = state.selection.start;
@@ -561,14 +723,13 @@
             }, 50);
         });
 
-        // ✅ Função para codificar MP3 com lamejs
+        // ✅ Encoder MP3 otimizado
         function encodeMP3(buffer, start, end, kbps) {
             const channels = buffer.numberOfChannels;
             const sampleRate = buffer.sampleRate;
             const frameCount = Math.floor((end - start) * sampleRate);
             const startOffset = Math.floor(start * sampleRate);
 
-            // Criar buffers de entrada (Float32 -> Int16)
             const left = new Int16Array(frameCount);
             const right = channels > 1 ? new Int16Array(frameCount) : null;
 
@@ -576,18 +737,17 @@
             const rightSrc = channels > 1 ? buffer.getChannelData(1) : null;
 
             for (let i = 0; i < frameCount; i++) {
-                const srcIndex = startOffset + i;
-                left[i] = Math.max(-32768, Math.min(32767, leftSrc[srcIndex] * 32767));
+                const idx = startOffset + i;
+                left[i] = Math.max(-32768, Math.min(32767, leftSrc[idx] * 32767));
                 if (right) {
-                    right[i] = Math.max(-32768, Math.min(32767, rightSrc[srcIndex] * 32767));
+                    right[i] = Math.max(-32768, Math.min(32767, rightSrc[idx] * 32767));
                 }
             }
 
-            // Configurar encoder
             const mp3encoder = new lamejs.Mp3Encoder(channels, sampleRate, kbps);
             const mp3Data = [];
 
-            const samplesPerFrame = 1152;
+            const samplesPerFrame = 576; // Menor = menos travamento no celular
             for (let i = 0; i < frameCount; i += samplesPerFrame) {
                 const leftChunk = left.subarray(i, i + samplesPerFrame);
                 const rightChunk = right ? right.subarray(i, i + samplesPerFrame) : null;
